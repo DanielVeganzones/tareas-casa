@@ -1,0 +1,114 @@
+import { useEffect, useMemo, useState } from 'react'
+
+function DemandTaskPicker({
+  tasks,
+  onComplete,
+  completingTaskId,
+  title = 'Registrar tarea a demanda',
+  description = 'Busca una tarea y márcala cuando la hagas.',
+}) {
+  const [query, setQuery] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  const filteredTasks = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return tasks.slice(0, 8)
+    }
+
+    return tasks.filter((task) =>
+      task.name.toLowerCase().includes(normalizedQuery),
+    )
+  }, [query, tasks])
+
+  useEffect(() => {
+    if (tasks.length === 0) {
+      setIsOpen(false)
+      setQuery('')
+    }
+  }, [tasks.length])
+
+  function handleToggle() {
+    setIsOpen((current) => !current)
+    setQuery('')
+  }
+
+  return (
+    <section className="content-card">
+      <div className="section-heading">
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+        <span className="counter-chip">{tasks.length}</span>
+      </div>
+
+      {tasks.length === 0 ? (
+        <p className="empty-state">
+          Todavía no hay tareas a demanda creadas.
+        </p>
+      ) : (
+        <div className="demand-picker">
+          <button
+            type="button"
+            className={
+              isOpen
+                ? 'demand-picker__toggle is-open'
+                : 'demand-picker__toggle'
+            }
+            onClick={handleToggle}
+          >
+            <span>
+              {isOpen
+                ? 'Ocultar selector'
+                : 'Marcar una tarea a demanda'}
+            </span>
+            <strong>{isOpen ? 'Cerrar' : 'Abrir'}</strong>
+          </button>
+
+          {isOpen ? (
+            <>
+              <label className="demand-picker__search">
+                Buscar
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Ej: lavadora, lavavajillas..."
+                />
+              </label>
+
+              {filteredTasks.length === 0 ? (
+                <p className="empty-state">
+                  No hay tareas a demanda que coincidan con esa búsqueda.
+                </p>
+              ) : (
+                <div className="demand-picker__list">
+                  {filteredTasks.map((task) => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      className="demand-picker__item"
+                      onClick={() => onComplete(task)}
+                      disabled={completingTaskId === task.id}
+                    >
+                      <span>{task.name}</span>
+                      <strong>
+                        {completingTaskId === task.id
+                          ? 'Guardando...'
+                          : 'Hecha'}
+                      </strong>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
+      )}
+    </section>
+  )
+}
+
+export default DemandTaskPicker
