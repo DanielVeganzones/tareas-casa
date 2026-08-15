@@ -39,15 +39,15 @@ function getAvailabilityText(availability) {
   }
 
   if (availability.isAvailableEarly) {
-    return `Dentro del margen de ${availability.maxAdvanceDays} días`
+    return `Dentro del margen de ${availability.maxAdvanceDays} dias`
   }
 
   return `Se habilita el ${formatDate(availability.availableFrom)}`
 }
 
-function TaskCard({ task, onComplete, pending }) {
+function TaskCard({ task, onComplete, onDelete, pending, deleting }) {
   const availability = getTaskAvailability(task)
-  const disabled = pending || !availability.canComplete
+  const disabled = pending || deleting || !availability.canComplete
 
   return (
     <article className="task-card">
@@ -63,19 +63,32 @@ function TaskCard({ task, onComplete, pending }) {
         {isOneOffTask(task) ? (
           <p>Tarea a demanda sin fecha programada</p>
         ) : (
-          <p>Próxima fecha: {formatDate(task.next_due_date)}</p>
+          <p>Proxima fecha: {formatDate(task.next_due_date)}</p>
         )}
         <p>{getAvailabilityText(availability)}</p>
       </div>
 
-      <button
-        type="button"
-        className="complete-button"
-        onClick={() => onComplete(task)}
-        disabled={disabled}
-      >
-        {pending ? '...' : 'Hecha'}
-      </button>
+      <div className="task-card__actions">
+        {onDelete ? (
+          <button
+            type="button"
+            className="secondary-button danger-button"
+            onClick={() => onDelete(task)}
+            disabled={pending || deleting}
+          >
+            {deleting ? 'Borrando...' : 'Borrar'}
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className="complete-button"
+          onClick={() => onComplete(task)}
+          disabled={disabled}
+        >
+          {pending ? '...' : 'Hecha'}
+        </button>
+      </div>
     </article>
   )
 }

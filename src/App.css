@@ -141,6 +141,13 @@ small {
   min-width: 0;
 }
 
+.task-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: center;
+}
+
 .task-card__header {
   display: flex;
   gap: 10px;
@@ -217,6 +224,12 @@ button:disabled {
   background: var(--surface-alt);
   color: var(--text-strong);
   border: 1px solid var(--border);
+}
+
+.danger-button {
+  color: #8e2a2a;
+  border-color: rgba(191, 74, 74, 0.2);
+  background: rgba(191, 74, 74, 0.08);
 }
 
 .complete-button {
@@ -306,6 +319,17 @@ button:disabled {
 
 .demand-picker__item strong {
   color: var(--accent-strong);
+}
+
+.demand-picker__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.demand-picker__complete {
+  min-width: 88px;
 }
 
 label {
@@ -601,11 +625,14 @@ select {
     flex-direction: column;
   }
 
+  .task-card__actions,
   .history-item__actions {
     align-items: stretch;
+    width: 100%;
   }
 
-  .complete-button {
+  .complete-button,
+  .demand-picker__actions button {
     width: 100%;
   }
 
@@ -643,5 +670,9 @@ select {
   .demand-picker__item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .demand-picker__actions {
+    width: 100%;
   }
 }

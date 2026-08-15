@@ -3,9 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 function DemandTaskPicker({
   tasks,
   onComplete,
+  onDelete,
   completingTaskId,
+  deletingTaskId,
   title = 'Registrar tarea a demanda',
-  description = 'Busca una tarea y márcala cuando la hagas.',
+  description = 'Busca una tarea y marcala cuando la hagas.',
 }) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
@@ -45,9 +47,7 @@ function DemandTaskPicker({
       </div>
 
       {tasks.length === 0 ? (
-        <p className="empty-state">
-          Todavía no hay tareas a demanda creadas.
-        </p>
+        <p className="empty-state">Todavia no hay tareas a demanda creadas.</p>
       ) : (
         <div className="demand-picker">
           <button
@@ -81,26 +81,42 @@ function DemandTaskPicker({
 
               {filteredTasks.length === 0 ? (
                 <p className="empty-state">
-                  No hay tareas a demanda que coincidan con esa búsqueda.
+                  No hay tareas a demanda que coincidan con esa busqueda.
                 </p>
               ) : (
                 <div className="demand-picker__list">
-                  {filteredTasks.map((task) => (
-                    <button
-                      key={task.id}
-                      type="button"
-                      className="demand-picker__item"
-                      onClick={() => onComplete(task)}
-                      disabled={completingTaskId === task.id}
-                    >
-                      <span>{task.name}</span>
-                      <strong>
-                        {completingTaskId === task.id
-                          ? 'Guardando...'
-                          : 'Hecha'}
-                      </strong>
-                    </button>
-                  ))}
+                  {filteredTasks.map((task) => {
+                    const isCompleting = completingTaskId === task.id
+                    const isDeleting = deletingTaskId === task.id
+
+                    return (
+                      <div className="demand-picker__item" key={task.id}>
+                        <span>{task.name}</span>
+
+                        <div className="demand-picker__actions">
+                          {onDelete ? (
+                            <button
+                              type="button"
+                              className="secondary-button danger-button"
+                              onClick={() => onDelete(task)}
+                              disabled={isCompleting || isDeleting}
+                            >
+                              {isDeleting ? 'Borrando...' : 'Borrar'}
+                            </button>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            className="demand-picker__complete"
+                            onClick={() => onComplete(task)}
+                            disabled={isCompleting || isDeleting}
+                          >
+                            {isCompleting ? 'Guardando...' : 'Hecha'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </>

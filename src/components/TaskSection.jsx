@@ -6,7 +6,9 @@ function TaskSection({
   emptyText,
   tasks,
   onComplete,
+  onDelete,
   completingTaskId,
+  deletingTaskId,
 }) {
   return (
     <section className="content-card">
@@ -27,7 +29,9 @@ function TaskSection({
               key={task.id}
               task={task}
               onComplete={onComplete}
+              onDelete={onDelete}
               pending={completingTaskId === task.id}
+              deleting={deletingTaskId === task.id}
             />
           ))}
         </div>

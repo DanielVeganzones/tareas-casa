@@ -72,6 +72,7 @@ function App() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [savingTask, setSavingTask] = useState(false)
   const [completingTaskId, setCompletingTaskId] = useState(null)
+  const [deletingTaskId, setDeletingTaskId] = useState(null)
   const [undoingCompletionId, setUndoingCompletionId] = useState(null)
   const [selectedCompleterId, setSelectedCompleterId] = useState(null)
 
@@ -453,6 +454,33 @@ function App() {
     setUndoingCompletionId(null)
   }
 
+  async function handleDeleteTask(task) {
+    const confirmed = window.confirm(
+      `¿Seguro que quieres borrar "${task.name}"?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingTaskId(task.id)
+    setErrorMessage('')
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ active: false })
+      .eq('id', task.id)
+
+    if (error) {
+      setErrorMessage(error.message)
+      setDeletingTaskId(null)
+      return
+    }
+
+    await refreshHouseholdData()
+    setDeletingTaskId(null)
+  }
+
   async function logout() {
     await supabase.auth.signOut()
   }
@@ -526,7 +554,9 @@ function App() {
             onCloseTaskForm={() => setShowTaskForm(false)}
             onCreateTask={handleCreateTask}
             onComplete={handleCompleteTask}
+            onDeleteTask={handleDeleteTask}
             completingTaskId={completingTaskId}
+            deletingTaskId={deletingTaskId}
             savingTask={savingTask}
           />
         )}
