@@ -1,27 +1,23 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatDateTime } from '../lib/task-utils'
 
-function TaskDetails({
-  task,
-  notes,
-  checklistItems,
-  onChange,
-  currentUserId,
-}) {
+function TaskDetails({ task, notes, checklistItems, onChange }) {
   const [activePanel, setActivePanel] = useState(null)
   const [noteBody, setNoteBody] = useState('')
-  const [editingNoteId, setEditingNoteId] = useState(null)
-  const [editingNoteBody, setEditingNoteBody] = useState('')
   const [checklistLabel, setChecklistLabel] = useState('')
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
+  const note = notes[0] ?? null
   const checkedCount = checklistItems.filter((item) => item.is_checked).length
 
   function togglePanel(panel) {
     setActivePanel((current) => (current === panel ? null : panel))
     setErrorMessage('')
+
+    if (panel === 'notes') {
+      setNoteBody(note?.body ?? '')
+    }
   }
 
   async function runChange(operation) {
@@ -38,7 +34,7 @@ function TaskDetails({
     }
   }
 
-  function addNote(event) {
+  function saveNote(event) {
     event.preventDefault()
     const body = noteBody.trim()
 
@@ -47,10 +43,28 @@ function TaskDetails({
     }
 
     runChange(async () => {
-      const { error } = await supabase.from('task_notes').insert({
-        task_id: task.id,
-        body,
-      })
+      const { error } = await supabase.from('task_notes').upsert(
+        {
+          task_id: task.id,
+          body,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'task_id' },
+      )
+
+      if (error) {
+        throw error
+      }
+    })
+  }
+
+  function deleteNote() {
+    if (!note || !window.confirm('¿Quieres borrar las notas de esta tarea?')) {
+      return
+    }
+
+    runChange(async () => {
+      const { error } = await supabase.from('task_notes').delete().eq('id', note.id)
 
       if (error) {
         throw error
@@ -83,59 +97,6 @@ function TaskDetails({
       }
 
       setChecklistLabel('')
-    })
-  }
-
-  function startEditingNote(note) {
-    setEditingNoteId(note.id)
-    setEditingNoteBody(note.body)
-    setErrorMessage('')
-  }
-
-  function cancelEditingNote() {
-    setEditingNoteId(null)
-    setEditingNoteBody('')
-  }
-
-  function saveNote(event, note) {
-    event.preventDefault()
-    const body = editingNoteBody.trim()
-
-    if (!body) {
-      return
-    }
-
-    runChange(async () => {
-      const { error } = await supabase
-        .from('task_notes')
-        .update({ body, updated_at: new Date().toISOString() })
-        .eq('id', note.id)
-
-      if (error) {
-        throw error
-      }
-
-      cancelEditingNote()
-    })
-  }
-
-  function deleteNote(note) {
-    const confirmed = window.confirm('¿Quieres borrar esta nota?')
-
-    if (!confirmed) {
-      return
-    }
-
-    runChange(async () => {
-      const { error } = await supabase.from('task_notes').delete().eq('id', note.id)
-
-      if (error) {
-        throw error
-      }
-
-      if (editingNoteId === note.id) {
-        cancelEditingNote()
-      }
     })
   }
 
@@ -181,7 +142,7 @@ function TaskDetails({
           }
           onClick={() => togglePanel('notes')}
         >
-          Notas{notes.length > 0 ? ` (${notes.length})` : ''}
+          Notas{note ? ' ·' : ''}
         </button>
         <button
           type="button"
@@ -200,84 +161,33 @@ function TaskDetails({
       </div>
 
       {activePanel === 'notes' ? (
-        <div className="task-details__panel">
-          {notes.length === 0 ? (
-            <p className="empty-state">Todavía no hay notas.</p>
-          ) : (
-            <div className="task-details__notes">
-              {notes.map((note) => (
-                <article className="task-details__note" key={note.id}>
-                  {editingNoteId === note.id && note.created_by === currentUserId ? (
-                    <form onSubmit={(event) => saveNote(event, note)}>
-                      <textarea
-                        value={editingNoteBody}
-                        onChange={(event) => setEditingNoteBody(event.target.value)}
-                        rows="3"
-                        disabled={saving}
-                      />
-                      <div className="task-details__note-actions">
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={cancelEditingNote}
-                          disabled={saving}
-                        >
-                          Cancelar
-                        </button>
-                        <button type="submit" disabled={saving || !editingNoteBody.trim()}>
-                          Guardar
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <p>{note.body}</p>
-                      <div className="task-details__note-footer">
-                        <small>{formatDateTime(note.created_at)}</small>
-                        {note.created_by === currentUserId ? (
-                          <div className="task-details__note-actions">
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              onClick={() => startEditingNote(note)}
-                              disabled={saving}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              className="secondary-button danger-button"
-                              onClick={() => deleteNote(note)}
-                              disabled={saving}
-                            >
-                              Borrar
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-
-          <form className="task-details__form" onSubmit={addNote}>
-            <label>
-              Añadir nota
-              <textarea
-                value={noteBody}
-                onChange={(event) => setNoteBody(event.target.value)}
-                placeholder="Ej: usar el producto que queda en el armario"
-                rows="3"
+        <form className="task-details__panel task-details__form" onSubmit={saveNote}>
+          <label>
+            Notas de la tarea
+            <textarea
+              value={noteBody}
+              onChange={(event) => setNoteBody(event.target.value)}
+              placeholder="Ej: usar el producto que queda en el armario"
+              rows="4"
+              disabled={saving}
+            />
+          </label>
+          <div className="task-details__note-actions">
+            {note ? (
+              <button
+                type="button"
+                className="secondary-button danger-button"
+                onClick={deleteNote}
                 disabled={saving}
-              />
-            </label>
+              >
+                Borrar notas
+              </button>
+            ) : null}
             <button type="submit" disabled={saving || !noteBody.trim()}>
-              Añadir nota
+              Guardar notas
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       ) : null}
 
       {activePanel === 'checklist' ? (
@@ -310,7 +220,10 @@ function TaskDetails({
             </ul>
           )}
 
-          <form className="task-details__form task-details__form--inline" onSubmit={addChecklistItem}>
+          <form
+            className="task-details__form task-details__form--inline"
+            onSubmit={addChecklistItem}
+          >
             <label>
               Añadir a la lista
               <input

@@ -11,7 +11,6 @@ function TaskSection({
   deletingTaskId,
   taskDetailsById,
   onTaskDetailsChange,
-  currentUserId,
 }) {
   return (
     <section className="content-card">
@@ -38,7 +37,6 @@ function TaskSection({
               notes={taskDetailsById.get(task.id)?.notes ?? []}
               checklistItems={taskDetailsById.get(task.id)?.checklistItems ?? []}
               onTaskDetailsChange={onTaskDetailsChange}
-              currentUserId={currentUserId}
             />
           ))}
         </div>

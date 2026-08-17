@@ -55,7 +55,6 @@ function TaskCard({
   notes,
   checklistItems,
   onTaskDetailsChange,
-  currentUserId,
 }) {
   const availability = getTaskAvailability(task)
   const disabled = pending || deleting || !availability.canComplete
@@ -106,7 +105,6 @@ function TaskCard({
         notes={notes}
         checklistItems={checklistItems}
         onChange={onTaskDetailsChange}
-        currentUserId={currentUserId}
       />
     </article>
   )

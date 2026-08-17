@@ -18,7 +18,6 @@ function TasksView({
   savingTask,
   taskDetailsById,
   onTaskDetailsChange,
-  currentUserId,
 }) {
   return (
     <div className="page-stack">
@@ -56,7 +55,6 @@ function TasksView({
         deletingTaskId={deletingTaskId}
         taskDetailsById={taskDetailsById}
         onTaskDetailsChange={onTaskDetailsChange}
-        currentUserId={currentUserId}
       />
 
       <DemandTaskPicker
