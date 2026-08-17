@@ -191,53 +191,76 @@ function TaskDetails({ task, notes, checklistItems, onChange }) {
       ) : null}
 
       {activePanel === 'checklist' ? (
-        <div className="task-details__panel">
-          {checklistItems.length === 0 ? (
-            <p className="empty-state">Todavía no hay elementos en la lista.</p>
-          ) : (
-            <ul className="task-details__checklist">
-              {checklistItems.map((item) => (
-                <li key={item.id}>
-                  <label className="task-details__check-item">
-                    <input
-                      type="checkbox"
-                      checked={item.is_checked}
-                      onChange={() => toggleChecklistItem(item)}
-                      disabled={saving}
-                    />
-                    <span>{item.label}</span>
-                  </label>
-                  <button
-                    type="button"
-                    className="secondary-button danger-button task-details__delete"
-                    onClick={() => deleteChecklistItem(item)}
-                    disabled={saving}
-                  >
-                    Quitar
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div
+          className="task-checklist-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Checklist de ${task.name}`}
+        >
+          <section className="task-checklist-modal__content">
+            <header className="task-checklist-modal__header">
+              <div>
+                <p className="eyebrow">Checklist</p>
+                <h2>{task.name}</h2>
+              </div>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setActivePanel(null)}
+              >
+                ← Volver
+              </button>
+            </header>
 
-          <form
-            className="task-details__form task-details__form--inline"
-            onSubmit={addChecklistItem}
-          >
-            <label>
-              Añadir a la lista
-              <input
-                type="text"
-                value={checklistLabel}
-                onChange={(event) => setChecklistLabel(event.target.value)}
-                placeholder="Ej: arroz"
-                disabled={saving}
-              />
-            </label>
-            <button type="submit" disabled={saving || !checklistLabel.trim()}>
-              Añadir
-            </button>
-          </form>
+            <div className="task-checklist-modal__list">
+              {checklistItems.length === 0 ? (
+                <p className="empty-state">Todavía no hay elementos en la lista.</p>
+              ) : (
+                <ul className="task-details__checklist">
+                  {checklistItems.map((item) => (
+                    <li key={item.id}>
+                      <label className="task-details__check-item">
+                        <input
+                          type="checkbox"
+                          checked={item.is_checked}
+                          onChange={() => toggleChecklistItem(item)}
+                          disabled={saving}
+                        />
+                        <span>{item.label}</span>
+                      </label>
+                      <button
+                        type="button"
+                        className="secondary-button danger-button task-details__delete"
+                        onClick={() => deleteChecklistItem(item)}
+                        disabled={saving}
+                      >
+                        Quitar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <form
+              className="task-details__form task-details__form--inline task-checklist-modal__form"
+              onSubmit={addChecklistItem}
+            >
+              <label>
+                Añadir a la lista
+                <input
+                  type="text"
+                  value={checklistLabel}
+                  onChange={(event) => setChecklistLabel(event.target.value)}
+                  placeholder="Ej: arroz"
+                  disabled={saving}
+                />
+              </label>
+              <button type="submit" disabled={saving || !checklistLabel.trim()}>
+                Añadir
+              </button>
+            </form>
+          </section>
         </div>
       ) : null}
 

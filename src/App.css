@@ -310,6 +310,55 @@ small {
   font-size: 0.9rem;
 }
 
+.task-checklist-modal {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  background: rgba(26, 40, 33, 0.38);
+  backdrop-filter: blur(5px);
+}
+
+.task-checklist-modal__content {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, 760px);
+  min-height: 100%;
+  padding: 24px 18px;
+  box-sizing: border-box;
+  background: var(--surface);
+}
+
+.task-checklist-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-checklist-modal__header h2 {
+  margin: 0;
+}
+
+.task-checklist-modal__list {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 0;
+}
+
+.task-checklist-modal__list .task-details__checklist li {
+  padding: 14px;
+}
+
+.task-checklist-modal__form {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
 .task-card__header {
   display: flex;
   gap: 10px;
@@ -804,6 +853,14 @@ textarea {
 
   .task-details__form--inline button {
     align-self: flex-start;
+  }
+
+  .task-checklist-modal__content {
+    padding: 18px 14px;
+  }
+
+  .task-checklist-modal__header {
+    align-items: center;
   }
 
   .complete-button,
