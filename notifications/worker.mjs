@@ -84,15 +84,52 @@ async function getAuthenticatedUser(request, env) {
   return response.ok ? response.json() : null
 }
 
-async function assertHouseholdMember(env, householdId, userId) {
-  const members = await supabaseRequest(
-    env,
-    `household_members?select=user_id&household_id=eq.${encodeURIComponent(
+async function assertHouseholdMember(
+  env,
+  householdId,
+  userId,
+  userAuthorization,
+) {
+  const response = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/household_members?select=user_id&household_id=eq.${encodeURIComponent(
       householdId,
     )}&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    {
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: userAuthorization,
+      },
+    },
   )
 
+  if (!response.ok) {
+    throw new Error(`No se pudo comprobar el hogar (${response.status}).`)
+  }
+
+  const members = await response.json()
+
   return members.length > 0
+}
+
+async function getAuthorizedUser(request, env, householdId) {
+  const user = await getAuthenticatedUser(request, env)
+
+  if (!user) {
+    return { error: 'No se pudo validar tu sesión. Vuelve a iniciar sesión.', status: 401 }
+  }
+
+  const isMember = await assertHouseholdMember(
+    env,
+    householdId,
+    user.id,
+    request.headers.get('Authorization'),
+  )
+
+  if (!isMember) {
+    return { error: 'Tu usuario no pertenece a este hogar.', status: 403 }
+  }
+
+  return { user }
 }
 
 function configureWebPush(env) {
@@ -255,39 +292,50 @@ async function sendScheduledSummary(env, dateKey, kind) {
 }
 
 async function handleSubscribe(request, env) {
-  const user = await getAuthenticatedUser(request, env)
   const { householdId, subscription } = await request.json()
+  const authorization = await getAuthorizedUser(request, env, householdId)
 
-  if (!user || !(await assertHouseholdMember(env, householdId, user.id))) {
-    return json({ error: 'No autorizado.' }, env, 401)
+  if (!authorization.user) {
+    return json({ error: authorization.error }, env, authorization.status)
   }
 
   if (!subscription?.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
     return json({ error: 'Suscripción no válida.' }, env, 400)
   }
 
-  await supabaseRequest(env, 'push_subscriptions?on_conflict=endpoint', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({
-      household_id: householdId,
-      user_id: user.id,
-      endpoint: subscription.endpoint,
-      p256dh: subscription.keys.p256dh,
-      auth: subscription.keys.auth,
-      updated_at: new Date().toISOString(),
-    }),
-  })
+  try {
+    await supabaseRequest(env, 'push_subscriptions?on_conflict=endpoint', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        household_id: householdId,
+        user_id: authorization.user.id,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        updated_at: new Date().toISOString(),
+      }),
+    })
+  } catch {
+    return json(
+      {
+        error:
+          'El Worker no puede guardar el aviso. Revisa el secreto SUPABASE_SERVICE_ROLE_KEY.',
+      },
+      env,
+      500,
+    )
+  }
 
   return json({ ok: true }, env)
 }
 
 async function handleUnsubscribe(request, env) {
-  const user = await getAuthenticatedUser(request, env)
   const { householdId, endpoint } = await request.json()
+  const authorization = await getAuthorizedUser(request, env, householdId)
 
-  if (!user || !(await assertHouseholdMember(env, householdId, user.id))) {
-    return json({ error: 'No autorizado.' }, env, 401)
+  if (!authorization.user) {
+    return json({ error: authorization.error }, env, authorization.status)
   }
 
   if (!endpoint) {
@@ -298,7 +346,7 @@ async function handleUnsubscribe(request, env) {
     env,
     `push_subscriptions?endpoint=eq.${encodeURIComponent(
       endpoint,
-    )}&user_id=eq.${encodeURIComponent(user.id)}`,
+    )}&user_id=eq.${encodeURIComponent(authorization.user.id)}`,
     { method: 'DELETE' },
   )
 
@@ -306,11 +354,11 @@ async function handleUnsubscribe(request, env) {
 }
 
 async function handleTaskActivity(request, env, type) {
-  const user = await getAuthenticatedUser(request, env)
   const { householdId, taskName } = await request.json()
+  const authorization = await getAuthorizedUser(request, env, householdId)
 
-  if (!user || !(await assertHouseholdMember(env, householdId, user.id))) {
-    return json({ error: 'No autorizado.' }, env, 401)
+  if (!authorization.user) {
+    return json({ error: authorization.error }, env, authorization.status)
   }
 
   if (!taskName?.trim()) {
@@ -329,7 +377,7 @@ async function handleTaskActivity(request, env, type) {
       body: taskName.trim(),
       tag: `${type}-${crypto.randomUUID()}`,
     },
-    user.id,
+    authorization.user.id,
   )
 
   return json({ ok: true }, env)
