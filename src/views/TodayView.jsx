@@ -6,7 +6,9 @@ function TodayView({
   tasks,
   demandTasks,
   onComplete,
+  onMarkPending,
   completingTaskId,
+  pendingTaskId,
 }) {
   const sections = getTodayTaskSections(tasks)
   const totalVisible =
@@ -28,7 +30,9 @@ function TodayView({
       <DemandTaskPicker
         tasks={demandTasks}
         onComplete={onComplete}
+        onMarkPending={onMarkPending}
         completingTaskId={completingTaskId}
+        pendingTaskId={pendingTaskId}
         title="Registrar tarea a demanda"
         description="Elige una tarea del día a día y márcala cuando la acabes."
       />

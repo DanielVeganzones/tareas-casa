@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from 'react'
 function DemandTaskPicker({
   tasks,
   onComplete,
+  onMarkPending,
   onDelete,
   completingTaskId,
+  pendingTaskId,
   deletingTaskId,
   title = 'Registrar tarea a demanda',
   description = 'Busca una tarea y marcala cuando la hagas.',
@@ -87,7 +89,10 @@ function DemandTaskPicker({
                 <div className="demand-picker__list">
                   {filteredTasks.map((task) => {
                     const isCompleting = completingTaskId === task.id
+                    const isMarkingPending = pendingTaskId === task.id
                     const isDeleting = deletingTaskId === task.id
+                    const isBusy =
+                      isCompleting || isMarkingPending || isDeleting
 
                     return (
                       <div className="demand-picker__item" key={task.id}>
@@ -99,9 +104,20 @@ function DemandTaskPicker({
                               type="button"
                               className="secondary-button danger-button"
                               onClick={() => onDelete(task)}
-                              disabled={isCompleting || isDeleting}
+                              disabled={isBusy}
                             >
                               {isDeleting ? 'Borrando...' : 'Borrar'}
+                            </button>
+                          ) : null}
+
+                          {onMarkPending ? (
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => onMarkPending(task)}
+                              disabled={isBusy}
+                            >
+                              {isMarkingPending ? 'Guardando...' : 'Pendiente'}
                             </button>
                           ) : null}
 
@@ -109,7 +125,7 @@ function DemandTaskPicker({
                             type="button"
                             className="demand-picker__complete"
                             onClick={() => onComplete(task)}
-                            disabled={isCompleting || isDeleting}
+                            disabled={isBusy}
                           >
                             {isCompleting ? 'Guardando...' : 'Hecha'}
                           </button>

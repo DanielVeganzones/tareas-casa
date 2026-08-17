@@ -57,12 +57,28 @@ export function isRecurringTask(task) {
   )
 }
 
+export function isDemandTask(task) {
+  return Boolean(
+    !task.frequency_unit &&
+      !task.frequency_value &&
+      !task.next_due_date,
+  )
+}
+
+export function isScheduledOneOffTask(task) {
+  return Boolean(
+    !task.frequency_unit &&
+      !task.frequency_value &&
+      task.next_due_date,
+  )
+}
+
 export function isOneOffTask(task) {
-  return !isRecurringTask(task)
+  return isDemandTask(task)
 }
 
 export function frequencyText(task) {
-  if (isOneOffTask(task)) {
+  if (!isRecurringTask(task)) {
     return 'Sin frecuencia'
   }
 
@@ -131,7 +147,7 @@ export function calculateNextDueDate(task, completedAt = new Date()) {
 }
 
 export function getTaskAvailability(task, referenceDate = new Date()) {
-  if (isOneOffTask(task)) {
+  if (isDemandTask(task)) {
     return {
       availableFrom: null,
       canComplete: true,
@@ -148,6 +164,25 @@ export function getTaskAvailability(task, referenceDate = new Date()) {
 
   const today = startOfDay(referenceDate)
   const dueDate = startOfDay(dateFromKey(task.next_due_date))
+
+  if (isScheduledOneOffTask(task)) {
+    const isOverdue = dueDate < today
+    const isDueToday = dueDate.getTime() === today.getTime()
+
+    return {
+      availableFrom: task.next_due_date,
+      canComplete: today >= dueDate,
+      daysUntilDue: Math.ceil((dueDate - today) / DAY_MS),
+      dueDate,
+      isAvailableEarly: false,
+      isDueToday,
+      isOneOff: false,
+      isOverdue,
+      maxAdvanceDays: null,
+      status: isOverdue ? 'overdue' : isDueToday ? 'today' : 'locked',
+    }
+  }
+
   const frequencyDays = getFrequencyInDays(task)
   const maxAdvanceDays = Math.max(1, Math.ceil(frequencyDays / 3))
 

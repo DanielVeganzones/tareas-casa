@@ -10,8 +10,10 @@ function TasksView({
   onCloseTaskForm,
   onCreateTask,
   onComplete,
+  onMarkPending,
   onDeleteTask,
   completingTaskId,
+  pendingTaskId,
   deletingTaskId,
   savingTask,
 }) {
@@ -42,8 +44,8 @@ function TasksView({
 
       <TaskSection
         title="Pendientes"
-        description="Incluye solo las tareas recurrentes pendientes."
-        emptyText="Todavia no hay tareas recurrentes pendientes."
+        description="Incluye las tareas recurrentes y puntuales pendientes."
+        emptyText="Todavia no hay tareas pendientes."
         tasks={tasks}
         onComplete={onComplete}
         onDelete={onDeleteTask}
@@ -54,11 +56,13 @@ function TasksView({
       <DemandTaskPicker
         tasks={demandTasks}
         onComplete={onComplete}
+        onMarkPending={onMarkPending}
         onDelete={onDeleteTask}
         completingTaskId={completingTaskId}
+        pendingTaskId={pendingTaskId}
         deletingTaskId={deletingTaskId}
         title="Tareas a demanda"
-        description="No quedan pendientes: se registran cuando toca hacerlas."
+        description="Márcalas como hechas o crea una pendiente para hoy."
       />
     </div>
   )

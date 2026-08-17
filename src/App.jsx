@@ -10,6 +10,7 @@ import {
   getTaskAvailability,
   getTodayDateKey,
   isOneOffTask,
+  isScheduledOneOffTask,
   toDateKey,
 } from './lib/task-utils'
 import CalendarView from './views/CalendarView'
@@ -72,6 +73,7 @@ function App() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [savingTask, setSavingTask] = useState(false)
   const [completingTaskId, setCompletingTaskId] = useState(null)
+  const [markingPendingTaskId, setMarkingPendingTaskId] = useState(null)
   const [deletingTaskId, setDeletingTaskId] = useState(null)
   const [undoingCompletionId, setUndoingCompletionId] = useState(null)
   const [selectedCompleterId, setSelectedCompleterId] = useState(null)
@@ -409,7 +411,18 @@ function App() {
       return
     }
 
-    if (!isOneOffTask(task)) {
+    if (isScheduledOneOffTask(task)) {
+      const { error: archiveError } = await supabase
+        .from('tasks')
+        .update({ active: false })
+        .eq('id', task.id)
+
+      if (archiveError) {
+        setErrorMessage(archiveError.message)
+        setCompletingTaskId(null)
+        return
+      }
+    } else if (!isOneOffTask(task)) {
       const { error: updateError } = await supabase
         .from('tasks')
         .update({
@@ -426,6 +439,33 @@ function App() {
 
     await refreshHouseholdData()
     setCompletingTaskId(null)
+  }
+
+  async function handleMarkDemandTaskPending(task) {
+    if (!householdId) {
+      return
+    }
+
+    setMarkingPendingTaskId(task.id)
+    setErrorMessage('')
+
+    const { error } = await supabase.from('tasks').insert({
+      household_id: householdId,
+      name: task.name,
+      frequency_value: null,
+      frequency_unit: null,
+      next_due_date: getTodayDateKey(),
+      active: true,
+    })
+
+    if (error) {
+      setErrorMessage(error.message)
+      setMarkingPendingTaskId(null)
+      return
+    }
+
+    await refreshHouseholdData()
+    setMarkingPendingTaskId(null)
   }
 
   async function handleUndoCompletion(completion) {
@@ -539,7 +579,9 @@ function App() {
             tasks={recurringTasks}
             demandTasks={demandTasks}
             onComplete={handleCompleteTask}
+            onMarkPending={handleMarkDemandTaskPending}
             completingTaskId={completingTaskId}
+            pendingTaskId={markingPendingTaskId}
           />
         )}
 
@@ -554,8 +596,10 @@ function App() {
             onCloseTaskForm={() => setShowTaskForm(false)}
             onCreateTask={handleCreateTask}
             onComplete={handleCompleteTask}
+            onMarkPending={handleMarkDemandTaskPending}
             onDeleteTask={handleDeleteTask}
             completingTaskId={completingTaskId}
+            pendingTaskId={markingPendingTaskId}
             deletingTaskId={deletingTaskId}
             savingTask={savingTask}
           />
