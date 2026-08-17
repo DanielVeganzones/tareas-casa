@@ -195,9 +195,12 @@ export async function notifyPendingDemandTask({
     return
   }
 
+  const subscription = await getPushSubscription()
+
   await sendNotificationsApiRequest('/notifications/pending', accessToken, {
     householdId,
     taskName,
+    excludedEndpoint: subscription?.endpoint,
   })
 }
 
@@ -210,8 +213,11 @@ export async function notifyCompletedTask({
     return
   }
 
+  const subscription = await getPushSubscription()
+
   await sendNotificationsApiRequest('/notifications/completed', accessToken, {
     householdId,
     taskName,
+    excludedEndpoint: subscription?.endpoint,
   })
 }

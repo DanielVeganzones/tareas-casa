@@ -198,15 +198,15 @@ async function sendPush(env, subscription, notification) {
 async function getHouseholdSubscriptions(
   env,
   householdId,
-  excludedUserId,
+  excludedEndpoint,
   userAuthorization,
 ) {
-  const userFilter = excludedUserId
-    ? `&user_id=neq.${encodeURIComponent(excludedUserId)}`
+  const endpointFilter = excludedEndpoint
+    ? `&endpoint=neq.${encodeURIComponent(excludedEndpoint)}`
     : ''
   const path = `push_subscriptions?select=endpoint,p256dh,auth&household_id=eq.${encodeURIComponent(
     householdId,
-  )}${userFilter}`
+  )}${endpointFilter}`
 
   if (userAuthorization) {
     return supabaseUserRequest(env, path, userAuthorization)
@@ -219,13 +219,13 @@ async function notifyHousehold(
   env,
   householdId,
   notification,
-  excludedUserId,
+  excludedEndpoint,
   userAuthorization,
 ) {
   const subscriptions = await getHouseholdSubscriptions(
     env,
     householdId,
-    excludedUserId,
+    excludedEndpoint,
     userAuthorization,
   )
 
@@ -409,7 +409,7 @@ async function handleUnsubscribe(request, env) {
 }
 
 async function handleTaskActivity(request, env, type) {
-  const { householdId, taskName } = await request.json()
+  const { householdId, taskName, excludedEndpoint } = await request.json()
   const authorization = await getAuthorizedUser(request, env, householdId)
 
   if (!authorization.user) {
@@ -433,7 +433,7 @@ async function handleTaskActivity(request, env, type) {
       body: taskName.trim(),
       tag: `${type}-${crypto.randomUUID()}`,
     },
-    null,
+    excludedEndpoint,
     userAuthorization,
   )
 
