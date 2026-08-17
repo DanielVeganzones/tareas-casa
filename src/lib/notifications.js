@@ -98,10 +98,15 @@ export async function subscribeToPushNotifications({
       userVisibleOnly: true,
     }))
 
-  await sendNotificationsApiRequest('/subscriptions', accessToken, {
-    householdId,
-    subscription: subscription.toJSON(),
-  })
+  try {
+    await sendNotificationsApiRequest('/subscriptions', accessToken, {
+      householdId,
+      subscription: subscription.toJSON(),
+    })
+  } catch (error) {
+    await subscription.unsubscribe().catch(() => undefined)
+    throw error
+  }
 }
 
 export async function unsubscribeFromPushNotifications({
