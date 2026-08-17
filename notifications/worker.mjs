@@ -5,7 +5,7 @@ const MADRID_TIME_ZONE = 'Europe/Madrid'
 function corsHeaders(env) {
   return {
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
     'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN,
     Vary: 'Origin',
   }
@@ -283,6 +283,29 @@ async function handleSubscribe(request, env) {
   return json({ ok: true }, env)
 }
 
+async function handleUnsubscribe(request, env) {
+  const user = await getAuthenticatedUser(request, env)
+  const { householdId, endpoint } = await request.json()
+
+  if (!user || !(await assertHouseholdMember(env, householdId, user.id))) {
+    return json({ error: 'No autorizado.' }, env, 401)
+  }
+
+  if (!endpoint) {
+    return json({ error: 'Suscripción no válida.' }, env, 400)
+  }
+
+  await supabaseRequest(
+    env,
+    `push_subscriptions?endpoint=eq.${encodeURIComponent(
+      endpoint,
+    )}&user_id=eq.${encodeURIComponent(user.id)}`,
+    { method: 'DELETE' },
+  )
+
+  return json({ ok: true }, env)
+}
+
 async function handleTaskActivity(request, env, type) {
   const user = await getAuthenticatedUser(request, env)
   const { householdId, taskName } = await request.json()
@@ -321,6 +344,10 @@ export default {
 
     if (request.method === 'POST' && new URL(request.url).pathname === '/subscriptions') {
       return handleSubscribe(request, env)
+    }
+
+    if (request.method === 'DELETE' && new URL(request.url).pathname === '/subscriptions') {
+      return handleUnsubscribe(request, env)
     }
 
     if (

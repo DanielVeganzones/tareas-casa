@@ -1,4 +1,4 @@
-function AppHeader({ email, title, subtitle, onLogout }) {
+function AppHeader({ email, title, subtitle, onLogout, notificationControl }) {
   return (
     <header className="app-header">
       <div>
@@ -8,13 +8,16 @@ function AppHeader({ email, title, subtitle, onLogout }) {
         <small>{email}</small>
       </div>
 
-      <button
-        type="button"
-        className="secondary-button"
-        onClick={onLogout}
-      >
-        Salir
-      </button>
+      <div className="app-header__actions">
+        {notificationControl}
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={onLogout}
+        >
+          Salir
+        </button>
+      </div>
     </header>
   )
 }

@@ -34,9 +34,14 @@ export function isPushNotificationSetupAvailable() {
   return Boolean(notificationsApiUrl && vapidPublicKey)
 }
 
-async function postToNotificationsApi(path, accessToken, body) {
+async function sendNotificationsApiRequest(
+  path,
+  accessToken,
+  body,
+  method = 'POST',
+) {
   const response = await fetch(`${notificationsApiUrl}${path}`, {
-    method: 'POST',
+    method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
@@ -48,6 +53,22 @@ async function postToNotificationsApi(path, accessToken, body) {
     const payload = await response.json().catch(() => null)
     throw new Error(payload?.error ?? 'No se pudo configurar la notificación.')
   }
+}
+
+async function getPushSubscription() {
+  const registration = await navigator.serviceWorker.getRegistration(
+    '/service-worker.js',
+  )
+
+  return registration?.pushManager.getSubscription() ?? null
+}
+
+export async function hasPushNotificationsSubscription() {
+  if (!arePushNotificationsSupported() || !isPushNotificationSetupAvailable()) {
+    return false
+  }
+
+  return Boolean(await getPushSubscription())
 }
 
 export async function subscribeToPushNotifications({
@@ -77,10 +98,33 @@ export async function subscribeToPushNotifications({
       userVisibleOnly: true,
     }))
 
-  await postToNotificationsApi('/subscriptions', accessToken, {
+  await sendNotificationsApiRequest('/subscriptions', accessToken, {
     householdId,
     subscription: subscription.toJSON(),
   })
+}
+
+export async function unsubscribeFromPushNotifications({
+  accessToken,
+  householdId,
+}) {
+  if (!isPushNotificationSetupAvailable()) {
+    return
+  }
+
+  const subscription = await getPushSubscription()
+
+  if (!subscription) {
+    return
+  }
+
+  await sendNotificationsApiRequest(
+    '/subscriptions',
+    accessToken,
+    { householdId, endpoint: subscription.endpoint },
+    'DELETE',
+  )
+  await subscription.unsubscribe()
 }
 
 export async function notifyPendingDemandTask({
@@ -92,7 +136,7 @@ export async function notifyPendingDemandTask({
     return
   }
 
-  await postToNotificationsApi('/notifications/pending', accessToken, {
+  await sendNotificationsApiRequest('/notifications/pending', accessToken, {
     householdId,
     taskName,
   })
@@ -107,7 +151,7 @@ export async function notifyCompletedTask({
     return
   }
 
-  await postToNotificationsApi('/notifications/completed', accessToken, {
+  await sendNotificationsApiRequest('/notifications/completed', accessToken, {
     householdId,
     taskName,
   })

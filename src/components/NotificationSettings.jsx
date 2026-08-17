@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   arePushNotificationsSupported,
+  hasPushNotificationsSubscription,
   isPushNotificationSetupAvailable,
   subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
 } from '../lib/notifications'
 
 function NotificationSettings({ session, householdId }) {
@@ -14,6 +16,30 @@ function NotificationSettings({ session, householdId }) {
     return Notification.permission === 'denied' ? 'denied' : 'idle'
   })
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    let isCurrent = true
+
+    if (!isPushNotificationSetupAvailable() || !arePushNotificationsSupported()) {
+      return undefined
+    }
+
+    hasPushNotificationsSubscription()
+      .then((hasSubscription) => {
+        if (isCurrent) {
+          setStatus(hasSubscription ? 'enabled' : 'idle')
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setStatus('idle')
+        }
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [])
 
   async function handleEnable() {
     if (!session?.access_token || !householdId) {
@@ -36,36 +62,65 @@ function NotificationSettings({ session, householdId }) {
     }
   }
 
+  async function handleDisable() {
+    if (!session?.access_token || !householdId) {
+      return
+    }
+
+    setStatus('saving')
+    setMessage('')
+
+    try {
+      await unsubscribeFromPushNotifications({
+        accessToken: session.access_token,
+        householdId,
+      })
+      setStatus('idle')
+      setMessage('Avisos desactivados en este dispositivo.')
+    } catch (error) {
+      setStatus('enabled')
+      setMessage(error.message)
+    }
+  }
+
   if (!isPushNotificationSetupAvailable() || status === 'unsupported') {
     return null
   }
 
   return (
-    <section className="notification-settings">
-      <div>
-        <strong>Recordatorios</strong>
-        <p>Hoy a las 09:00 y mañana a las 22:00.</p>
-      </div>
-
-      {status === 'enabled' ? (
-        <span className="notification-settings__status">Activados</span>
-      ) : (
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={handleEnable}
-          disabled={status === 'saving' || status === 'denied'}
-        >
-          {status === 'saving'
-            ? 'Activando...'
+    <div className="notification-settings">
+      <button
+        type="button"
+        className={`notification-bell ${
+          status === 'enabled' ? 'is-enabled' : ''
+        }`}
+        onClick={status === 'enabled' ? handleDisable : handleEnable}
+        disabled={status === 'saving' || status === 'denied'}
+        aria-label={
+          status === 'enabled'
+            ? 'Desactivar avisos'
             : status === 'denied'
-              ? 'Bloqueados'
-              : 'Activar avisos'}
-        </button>
-      )}
+              ? 'Los avisos están bloqueados en el navegador'
+              : 'Activar avisos'
+        }
+        aria-pressed={status === 'enabled'}
+        title={
+          status === 'enabled'
+            ? 'Avisos activados: toca para desactivarlos'
+            : status === 'denied'
+              ? 'Avisos bloqueados en el navegador'
+              : 'Activar avisos'
+        }
+      >
+        <span aria-hidden="true">{status === 'enabled' ? '🔔' : '🔕'}</span>
+      </button>
 
-      {message ? <p className="notification-settings__message">{message}</p> : null}
-    </section>
+      {message ? (
+        <span className="notification-settings__message" role="status">
+          {message}
+        </span>
+      ) : null}
+    </div>
   )
 }
 

@@ -656,6 +656,9 @@ function App() {
           title={tabMeta.title}
           subtitle={tabMeta.subtitle}
           onLogout={logout}
+          notificationControl={
+            <NotificationSettings session={session} householdId={householdId} />
+          }
         />
 
         {errorMessage && (
@@ -668,8 +671,6 @@ function App() {
           onChange={setSelectedCompleterId}
           resolveMemberLabel={resolveMemberLabel}
         />
-
-        <NotificationSettings session={session} householdId={householdId} />
 
         {activeTab === 'today' && (
           <TodayView
