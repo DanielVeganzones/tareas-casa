@@ -68,7 +68,8 @@ export async function subscribeToPushNotifications({
     throw new Error('No has permitido las notificaciones en este dispositivo.')
   }
 
-  const registration = await navigator.serviceWorker.register('/service-worker.js')
+  await navigator.serviceWorker.register('/service-worker.js')
+  const registration = await navigator.serviceWorker.ready
   const subscription =
     (await registration.pushManager.getSubscription()) ??
     (await registration.pushManager.subscribe({
