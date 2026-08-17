@@ -91,3 +91,18 @@ export async function notifyPendingDemandTask({
     taskName,
   })
 }
+
+export async function notifyCompletedTask({
+  accessToken,
+  householdId,
+  taskName,
+}) {
+  if (!isPushNotificationSetupAvailable()) {
+    return
+  }
+
+  await postToNotificationsApi('/notifications/completed', accessToken, {
+    householdId,
+    taskName,
+  })
+}

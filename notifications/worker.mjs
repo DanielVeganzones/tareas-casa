@@ -169,13 +169,14 @@ function formatTaskList(tasks) {
   return `${visibleTasks.join(', ')}${suffix}`
 }
 
-async function sendScheduledSummary(env, dateKey, kind) {
-  configureWebPush(env)
-
-  const tasks = await supabaseRequest(
+async function getTasksDueOn(env, dateKey) {
+  return supabaseRequest(
     env,
     `tasks?select=household_id,name&active=eq.true&next_due_date=eq.${dateKey}`,
   )
+}
+
+function groupTasksByHousehold(tasks) {
   const tasksByHousehold = new Map()
 
   tasks.forEach((task) => {
@@ -184,18 +185,73 @@ async function sendScheduledSummary(env, dateKey, kind) {
     tasksByHousehold.set(task.household_id, householdTasks)
   })
 
-  const label = kind === 'today' ? 'hoy' : 'mañana'
+  return tasksByHousehold
+}
+
+function buildMorningNotification(tasks, dateKey) {
+  return {
+    title: 'Tareas para hoy',
+    body: `${tasks.length} ${
+      tasks.length === 1 ? 'tarea' : 'tareas'
+    }: ${formatTaskList(tasks)}`,
+    tag: `tasks-today-${dateKey}`,
+  }
+}
+
+function buildNightNotification(todayTasks, tomorrowTasks, dateKey) {
+  const parts = []
+
+  if (todayTasks.length > 0) {
+    parts.push(
+      `Hoy quedan ${todayTasks.length}: ${formatTaskList(todayTasks)}`,
+    )
+  }
+
+  if (tomorrowTasks.length > 0) {
+    parts.push(
+      `Mañana ${tomorrowTasks.length}: ${formatTaskList(tomorrowTasks)}`,
+    )
+  }
+
+  return {
+    title:
+      todayTasks.length > 0 ? 'Resumen de tareas' : 'Tareas para mañana',
+    body: parts.join(' · '),
+    tag: `tasks-tomorrow-${dateKey}`,
+  }
+}
+
+async function sendScheduledSummary(env, dateKey, kind) {
+  configureWebPush(env)
+  const tomorrowDateKey = kind === 'tomorrow' ? dateKey : null
+  const todayDateKey =
+    kind === 'tomorrow' ? addDays(dateKey, -1) : dateKey
+  const [todayTasks, tomorrowTasks] = await Promise.all([
+    getTasksDueOn(env, todayDateKey),
+    tomorrowDateKey ? getTasksDueOn(env, tomorrowDateKey) : Promise.resolve([]),
+  ])
+  const todayByHousehold = groupTasksByHousehold(todayTasks)
+  const tomorrowByHousehold = groupTasksByHousehold(tomorrowTasks)
+  const householdIds = new Set([
+    ...todayByHousehold.keys(),
+    ...tomorrowByHousehold.keys(),
+  ])
 
   await Promise.all(
-    Array.from(tasksByHousehold.entries()).map(([householdId, householdTasks]) =>
-      notifyHousehold(env, householdId, {
-        title: `Tareas para ${label}`,
-        body: `${householdTasks.length} ${
-          householdTasks.length === 1 ? 'tarea' : 'tareas'
-        }: ${formatTaskList(householdTasks)}`,
-        tag: `tasks-${kind}-${dateKey}`,
-      }),
-    ),
+    Array.from(householdIds).map((householdId) => {
+      const householdTodayTasks = todayByHousehold.get(householdId) ?? []
+      const householdTomorrowTasks = tomorrowByHousehold.get(householdId) ?? []
+      const notification =
+        kind === 'today'
+          ? buildMorningNotification(householdTodayTasks, dateKey)
+          : buildNightNotification(
+              householdTodayTasks,
+              householdTomorrowTasks,
+              dateKey,
+            )
+
+      return notifyHousehold(env, householdId, notification)
+    }),
   )
 }
 
@@ -227,7 +283,7 @@ async function handleSubscribe(request, env) {
   return json({ ok: true }, env)
 }
 
-async function handlePendingTask(request, env) {
+async function handleTaskActivity(request, env, type) {
   const user = await getAuthenticatedUser(request, env)
   const { householdId, taskName } = await request.json()
 
@@ -240,13 +296,16 @@ async function handlePendingTask(request, env) {
   }
 
   configureWebPush(env)
+  const isCompleted = type === 'completed'
   await notifyHousehold(
     env,
     householdId,
     {
-      title: 'Nueva tarea pendiente para hoy',
+      title: isCompleted
+        ? 'Tarea completada'
+        : 'Nueva tarea pendiente para hoy',
       body: taskName.trim(),
-      tag: `pending-${crypto.randomUUID()}`,
+      tag: `${type}-${crypto.randomUUID()}`,
     },
     user.id,
   )
@@ -268,7 +327,14 @@ export default {
       request.method === 'POST' &&
       new URL(request.url).pathname === '/notifications/pending'
     ) {
-      return handlePendingTask(request, env)
+      return handleTaskActivity(request, env, 'pending')
+    }
+
+    if (
+      request.method === 'POST' &&
+      new URL(request.url).pathname === '/notifications/completed'
+    ) {
+      return handleTaskActivity(request, env, 'completed')
     }
 
     return json({ error: 'No encontrado.' }, env, 404)

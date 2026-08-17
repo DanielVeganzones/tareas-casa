@@ -3,8 +3,11 @@
 El Worker envía tres tipos de aviso, siempre con la hora de `Europe/Madrid`:
 
 - A las 09:00: tareas cuya fecha es hoy.
-- A las 22:00: tareas cuya fecha es mañana.
+- A las 22:00: tareas cuya fecha es mañana y, si las hay, las que siguen
+  pendientes de hoy.
 - Al instante: a los otros miembros que hayan activado avisos cuando alguien crea una tarea pendiente desde una tarea a demanda.
+- Al instante: a los otros miembros que hayan activado avisos cuando alguien
+  marca una tarea como hecha.
 
 ## Configuración inicial
 

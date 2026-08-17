@@ -6,7 +6,10 @@ import CompletionContextCard from './components/CompletionContextCard'
 import LoginView from './components/LoginView'
 import NotificationSettings from './components/NotificationSettings'
 import { supabase } from './lib/supabase'
-import { notifyPendingDemandTask } from './lib/notifications'
+import {
+  notifyCompletedTask,
+  notifyPendingDemandTask,
+} from './lib/notifications'
 import {
   calculateNextDueDate,
   getTaskAvailability,
@@ -440,6 +443,15 @@ function App() {
     }
 
     await refreshHouseholdData()
+
+    notifyCompletedTask({
+      accessToken: session?.access_token,
+      householdId,
+      taskName: task.name,
+    }).catch((error) => {
+      console.warn('No se pudo enviar el aviso de tarea completada.', error)
+    })
+
     setCompletingTaskId(null)
   }
 
