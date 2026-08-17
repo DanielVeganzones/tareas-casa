@@ -195,24 +195,38 @@ async function sendPush(env, subscription, notification) {
   }
 }
 
-async function getHouseholdSubscriptions(env, householdId, excludedUserId) {
+async function getHouseholdSubscriptions(
+  env,
+  householdId,
+  excludedUserId,
+  userAuthorization,
+) {
   const userFilter = excludedUserId
     ? `&user_id=neq.${encodeURIComponent(excludedUserId)}`
     : ''
+  const path = `push_subscriptions?select=endpoint,p256dh,auth&household_id=eq.${encodeURIComponent(
+    householdId,
+  )}${userFilter}`
 
-  return supabaseRequest(
-    env,
-    `push_subscriptions?select=endpoint,p256dh,auth&household_id=eq.${encodeURIComponent(
-      householdId,
-    )}${userFilter}`,
-  )
+  if (userAuthorization) {
+    return supabaseUserRequest(env, path, userAuthorization)
+  }
+
+  return supabaseRequest(env, path)
 }
 
-async function notifyHousehold(env, householdId, notification, excludedUserId) {
+async function notifyHousehold(
+  env,
+  householdId,
+  notification,
+  excludedUserId,
+  userAuthorization,
+) {
   const subscriptions = await getHouseholdSubscriptions(
     env,
     householdId,
     excludedUserId,
+    userAuthorization,
   )
 
   await Promise.all(
@@ -408,6 +422,7 @@ async function handleTaskActivity(request, env, type) {
 
   configureWebPush(env)
   const isCompleted = type === 'completed'
+  const userAuthorization = request.headers.get('Authorization')
   await notifyHousehold(
     env,
     householdId,
@@ -419,6 +434,7 @@ async function handleTaskActivity(request, env, type) {
       tag: `${type}-${crypto.randomUUID()}`,
     },
     authorization.user.id,
+    userAuthorization,
   )
 
   return json({ ok: true }, env)
