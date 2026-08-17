@@ -433,7 +433,7 @@ async function handleTaskActivity(request, env, type) {
       body: taskName.trim(),
       tag: `${type}-${crypto.randomUUID()}`,
     },
-    authorization.user.id,
+    null,
     userAuthorization,
   )
 
