@@ -61,7 +61,11 @@ async function supabaseRequest(env, path, options = {}) {
   })
 
   if (!response.ok) {
-    throw new Error(`Supabase respondió ${response.status}.`)
+    const payload = await response.json().catch(() => null)
+    const detail = payload?.message ?? payload?.hint ?? payload?.code
+    throw new Error(
+      `Supabase respondió ${response.status}${detail ? `: ${detail}` : '.'}`,
+    )
   }
 
   return response.status === 204 ? null : response.json()
@@ -316,11 +320,10 @@ async function handleSubscribe(request, env) {
         updated_at: new Date().toISOString(),
       }),
     })
-  } catch {
+  } catch (error) {
     return json(
       {
-        error:
-          'El Worker no puede guardar el aviso. Revisa el secreto SUPABASE_SERVICE_ROLE_KEY.',
+        error: `El Worker no puede guardar el aviso. ${error.message}`,
       },
       env,
       500,
