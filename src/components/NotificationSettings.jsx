@@ -24,7 +24,10 @@ function NotificationSettings({ session, householdId }) {
       return undefined
     }
 
-    hasPushNotificationsSubscription()
+    hasPushNotificationsSubscription({
+      householdId,
+      userId: session?.user?.id,
+    })
       .then((hasSubscription) => {
         if (isCurrent) {
           setStatus(hasSubscription ? 'enabled' : 'idle')
@@ -39,7 +42,7 @@ function NotificationSettings({ session, householdId }) {
     return () => {
       isCurrent = false
     }
-  }, [])
+  }, [householdId, session?.user?.id])
 
   async function handleEnable() {
     if (!session?.access_token || !householdId) {
@@ -51,8 +54,8 @@ function NotificationSettings({ session, householdId }) {
 
     try {
       await subscribeToPushNotifications({
-        accessToken: session.access_token,
         householdId,
+        userId: session.user.id,
       })
       setStatus('enabled')
       setMessage('Avisos activados en este dispositivo.')
@@ -72,8 +75,8 @@ function NotificationSettings({ session, householdId }) {
 
     try {
       await unsubscribeFromPushNotifications({
-        accessToken: session.access_token,
         householdId,
+        userId: session.user.id,
       })
       setStatus('idle')
       setMessage('Avisos desactivados en este dispositivo.')

@@ -52,11 +52,40 @@ function supabaseHeaders(env) {
   }
 }
 
+function supabaseUserHeaders(env, authorization) {
+  return {
+    apikey: env.SUPABASE_ANON_KEY,
+    Authorization: authorization,
+    'Content-Type': 'application/json',
+    'User-Agent': 'tareas-casa-notifications/1.0',
+  }
+}
+
 async function supabaseRequest(env, path, options = {}) {
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: {
       ...supabaseHeaders(env),
+      ...options.headers,
+    },
+  })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    const detail = payload?.message ?? payload?.hint ?? payload?.code
+    throw new Error(
+      `Supabase respondió ${response.status}${detail ? `: ${detail}` : '.'}`,
+    )
+  }
+
+  return response.status === 204 ? null : response.json()
+}
+
+async function supabaseUserRequest(env, path, authorization, options = {}) {
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      ...supabaseUserHeaders(env, authorization),
       ...options.headers,
     },
   })
@@ -298,6 +327,7 @@ async function sendScheduledSummary(env, dateKey, kind) {
 
 async function handleSubscribe(request, env) {
   const { householdId, subscription } = await request.json()
+  const userAuthorization = request.headers.get('Authorization')
   const authorization = await getAuthorizedUser(request, env, householdId)
 
   if (!authorization.user) {
@@ -309,18 +339,23 @@ async function handleSubscribe(request, env) {
   }
 
   try {
-    await supabaseRequest(env, 'push_subscriptions?on_conflict=endpoint', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({
-        household_id: householdId,
-        user_id: authorization.user.id,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        updated_at: new Date().toISOString(),
-      }),
-    })
+    await supabaseUserRequest(
+      env,
+      'push_subscriptions?on_conflict=endpoint',
+      userAuthorization,
+      {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({
+          household_id: householdId,
+          user_id: authorization.user.id,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+          updated_at: new Date().toISOString(),
+        }),
+      },
+    )
   } catch (error) {
     return json(
       {
@@ -336,6 +371,7 @@ async function handleSubscribe(request, env) {
 
 async function handleUnsubscribe(request, env) {
   const { householdId, endpoint } = await request.json()
+  const userAuthorization = request.headers.get('Authorization')
   const authorization = await getAuthorizedUser(request, env, householdId)
 
   if (!authorization.user) {
@@ -346,11 +382,12 @@ async function handleUnsubscribe(request, env) {
     return json({ error: 'Suscripción no válida.' }, env, 400)
   }
 
-  await supabaseRequest(
+  await supabaseUserRequest(
     env,
     `push_subscriptions?endpoint=eq.${encodeURIComponent(
       endpoint,
     )}&user_id=eq.${encodeURIComponent(authorization.user.id)}`,
+    userAuthorization,
     { method: 'DELETE' },
   )
 

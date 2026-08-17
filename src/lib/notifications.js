@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 const publicNotificationsConfig =
   globalThis.__TAREAS_CASA_CONFIG__ ?? {}
 
@@ -63,20 +65,55 @@ async function getPushSubscription() {
   return registration?.pushManager.getSubscription() ?? null
 }
 
-export async function hasPushNotificationsSubscription() {
+async function removeLocalPushSubscription() {
+  const subscription = await getPushSubscription()
+
+  if (subscription) {
+    await subscription.unsubscribe().catch(() => undefined)
+  }
+}
+
+export async function hasPushNotificationsSubscription({ householdId, userId } = {}) {
   if (!arePushNotificationsSupported() || !isPushNotificationSetupAvailable()) {
     return false
   }
 
-  return Boolean(await getPushSubscription())
+  const subscription = await getPushSubscription()
+
+  if (!subscription) {
+    return false
+  }
+
+  if (!householdId || !userId) {
+    return true
+  }
+
+  const { data, error } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint')
+    .eq('household_id', householdId)
+    .eq('user_id', userId)
+    .eq('endpoint', subscription.endpoint)
+    .maybeSingle()
+
+  if (error || !data) {
+    await removeLocalPushSubscription()
+    return false
+  }
+
+  return true
 }
 
 export async function subscribeToPushNotifications({
-  accessToken,
   householdId,
+  userId,
 }) {
   if (!arePushNotificationsSupported()) {
     throw new Error('Este navegador no admite notificaciones push.')
+  }
+
+  if (!userId) {
+    throw new Error('No se pudo identificar tu usuario.')
   }
 
   if (!isPushNotificationSetupAvailable()) {
@@ -99,19 +136,33 @@ export async function subscribeToPushNotifications({
     }))
 
   try {
-    await sendNotificationsApiRequest('/subscriptions', accessToken, {
-      householdId,
-      subscription: subscription.toJSON(),
-    })
+    const jsonSubscription = subscription.toJSON()
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      {
+        household_id: householdId,
+        user_id: userId,
+        endpoint: jsonSubscription.endpoint,
+        p256dh: jsonSubscription.keys.p256dh,
+        auth: jsonSubscription.keys.auth,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'endpoint' },
+    )
+
+    if (error) {
+      throw new Error(error.message)
+    }
   } catch (error) {
     await subscription.unsubscribe().catch(() => undefined)
-    throw error
+    throw new Error(`No se pudo guardar la suscripción: ${error.message}`, {
+      cause: error,
+    })
   }
 }
 
 export async function unsubscribeFromPushNotifications({
-  accessToken,
   householdId,
+  userId,
 }) {
   if (!isPushNotificationSetupAvailable()) {
     return
@@ -123,13 +174,16 @@ export async function unsubscribeFromPushNotifications({
     return
   }
 
-  await sendNotificationsApiRequest(
-    '/subscriptions',
-    accessToken,
-    { householdId, endpoint: subscription.endpoint },
-    'DELETE',
-  )
-  await subscription.unsubscribe()
+  if (userId && householdId) {
+    await supabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('household_id', householdId)
+      .eq('user_id', userId)
+      .eq('endpoint', subscription.endpoint)
+  }
+
+  await subscription.unsubscribe().catch(() => undefined)
 }
 
 export async function notifyPendingDemandTask({

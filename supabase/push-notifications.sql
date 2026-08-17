@@ -11,5 +11,75 @@ create table if not exists public.push_subscriptions (
 
 alter table public.push_subscriptions enable row level security;
 
--- Las suscripciones se escriben exclusivamente desde el Worker con la service role.
--- No se crea ninguna política para clientes anónimos o autenticados.
+drop policy if exists "Los miembros ven suscripciones de su casa"
+  on public.push_subscriptions;
+drop policy if exists "Los miembros crean sus propias suscripciones"
+  on public.push_subscriptions;
+drop policy if exists "Los miembros actualizan sus propias suscripciones"
+  on public.push_subscriptions;
+drop policy if exists "Los miembros borran sus propias suscripciones"
+  on public.push_subscriptions;
+
+create policy "Los miembros ven suscripciones de su casa"
+  on public.push_subscriptions
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.household_members
+      where household_members.household_id = push_subscriptions.household_id
+        and household_members.user_id = auth.uid()
+    )
+  );
+
+create policy "Los miembros crean sus propias suscripciones"
+  on public.push_subscriptions
+  for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1
+      from public.household_members
+      where household_members.household_id = push_subscriptions.household_id
+        and household_members.user_id = auth.uid()
+    )
+  );
+
+create policy "Los miembros actualizan sus propias suscripciones"
+  on public.push_subscriptions
+  for update
+  to authenticated
+  using (
+    user_id = auth.uid()
+    and exists (
+      select 1
+      from public.household_members
+      where household_members.household_id = push_subscriptions.household_id
+        and household_members.user_id = auth.uid()
+    )
+  )
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1
+      from public.household_members
+      where household_members.household_id = push_subscriptions.household_id
+        and household_members.user_id = auth.uid()
+    )
+  );
+
+create policy "Los miembros borran sus propias suscripciones"
+  on public.push_subscriptions
+  for delete
+  to authenticated
+  using (
+    user_id = auth.uid()
+    and exists (
+      select 1
+      from public.household_members
+      where household_members.household_id = push_subscriptions.household_id
+        and household_members.user_id = auth.uid()
+    )
+  );

@@ -25,7 +25,7 @@ El Worker envía tres tipos de aviso, siempre con la hora de `Europe/Madrid`:
    npm run notifications:deploy
    ```
 
-5. En Cloudflare, añade como secretos del Worker `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`. Añade también `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VAPID_PUBLIC_KEY` y `ALLOWED_ORIGIN` (la URL exacta de la aplicación de Cloudflare Pages).
+5. En Cloudflare, añade como secretos del Worker `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`. Añade también `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VAPID_PUBLIC_KEY` y `ALLOWED_ORIGIN` (la URL exacta de la aplicación de Cloudflare Pages). La campana guarda y borra suscripciones con la sesión normal del usuario; la service role queda para los avisos programados y para enviar avisos a otros miembros.
 6. En las variables de entorno del proyecto de Cloudflare Pages, añade:
 
    ```text
