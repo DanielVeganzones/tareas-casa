@@ -1,8 +1,13 @@
-const notificationsApiUrl = import.meta.env.VITE_NOTIFICATIONS_API_URL?.replace(
-  /\/$/,
-  '',
-)
-const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+const publicNotificationsConfig =
+  globalThis.__TAREAS_CASA_CONFIG__ ?? {}
+
+const notificationsApiUrl = (
+  import.meta.env.VITE_NOTIFICATIONS_API_URL ??
+  publicNotificationsConfig.notificationsApiUrl
+)?.replace(/\/$/, '')
+const vapidPublicKey =
+  import.meta.env.VITE_VAPID_PUBLIC_KEY ??
+  publicNotificationsConfig.vapidPublicKey
 
 function base64urlToUint8Array(base64url) {
   const padded = base64url + '='.repeat((4 - (base64url.length % 4)) % 4)
