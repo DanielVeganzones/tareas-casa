@@ -388,33 +388,42 @@ async function handleTaskActivity(request, env, type) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders(env) })
-    }
+    try {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { headers: corsHeaders(env) })
+      }
 
-    if (request.method === 'POST' && new URL(request.url).pathname === '/subscriptions') {
-      return handleSubscribe(request, env)
-    }
+      if (request.method === 'POST' && new URL(request.url).pathname === '/subscriptions') {
+        return handleSubscribe(request, env)
+      }
 
-    if (request.method === 'DELETE' && new URL(request.url).pathname === '/subscriptions') {
-      return handleUnsubscribe(request, env)
-    }
+      if (request.method === 'DELETE' && new URL(request.url).pathname === '/subscriptions') {
+        return handleUnsubscribe(request, env)
+      }
 
-    if (
-      request.method === 'POST' &&
-      new URL(request.url).pathname === '/notifications/pending'
-    ) {
-      return handleTaskActivity(request, env, 'pending')
-    }
+      if (
+        request.method === 'POST' &&
+        new URL(request.url).pathname === '/notifications/pending'
+      ) {
+        return handleTaskActivity(request, env, 'pending')
+      }
 
-    if (
-      request.method === 'POST' &&
-      new URL(request.url).pathname === '/notifications/completed'
-    ) {
-      return handleTaskActivity(request, env, 'completed')
-    }
+      if (
+        request.method === 'POST' &&
+        new URL(request.url).pathname === '/notifications/completed'
+      ) {
+        return handleTaskActivity(request, env, 'completed')
+      }
 
-    return json({ error: 'No encontrado.' }, env, 404)
+      return json({ error: 'No encontrado.' }, env, 404)
+    } catch (error) {
+      console.error(error)
+      return json(
+        { error: `El Worker falló: ${error.message}` },
+        env,
+        500,
+      )
+    }
   },
 
   async scheduled(controller, env, ctx) {
