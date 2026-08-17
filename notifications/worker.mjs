@@ -48,6 +48,7 @@ function supabaseHeaders(env) {
   return {
     apikey: env.SUPABASE_SERVICE_ROLE_KEY,
     'Content-Type': 'application/json',
+    'User-Agent': 'tareas-casa-notifications/1.0',
   }
 }
 
