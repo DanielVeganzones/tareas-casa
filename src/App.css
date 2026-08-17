@@ -234,6 +234,26 @@ small {
   white-space: pre-wrap;
 }
 
+.task-details__note-footer,
+.task-details__note-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.task-details__note-footer {
+  justify-content: space-between;
+}
+
+.task-details__note-actions button {
+  padding: 6px 9px;
+  font-size: 0.78rem;
+}
+
+.task-details__note form textarea {
+  margin-bottom: 10px;
+}
+
 .task-details__checklist li {
   display: flex;
   align-items: center;

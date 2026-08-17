@@ -345,7 +345,7 @@ function App() {
     const [notesQuery, checklistQuery] = await Promise.all([
       supabase
         .from('task_notes')
-        .select('id, task_id, body, created_at')
+        .select('id, task_id, body, created_at, created_by')
         .in('task_id', taskIds)
         .order('created_at', { ascending: false }),
       supabase
@@ -681,6 +681,7 @@ function App() {
             pendingTaskId={markingPendingTaskId}
             taskDetailsById={taskDetailsById}
             onTaskDetailsChange={refreshTaskDetails}
+            currentUserId={session.user.id}
           />
         )}
 
@@ -703,6 +704,7 @@ function App() {
             savingTask={savingTask}
             taskDetailsById={taskDetailsById}
             onTaskDetailsChange={refreshTaskDetails}
+            currentUserId={session.user.id}
           />
         )}
 

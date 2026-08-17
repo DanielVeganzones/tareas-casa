@@ -2,9 +2,17 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatDateTime } from '../lib/task-utils'
 
-function TaskDetails({ task, notes, checklistItems, onChange }) {
+function TaskDetails({
+  task,
+  notes,
+  checklistItems,
+  onChange,
+  currentUserId,
+}) {
   const [activePanel, setActivePanel] = useState(null)
   const [noteBody, setNoteBody] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editingNoteBody, setEditingNoteBody] = useState('')
   const [checklistLabel, setChecklistLabel] = useState('')
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -78,6 +86,59 @@ function TaskDetails({ task, notes, checklistItems, onChange }) {
     })
   }
 
+  function startEditingNote(note) {
+    setEditingNoteId(note.id)
+    setEditingNoteBody(note.body)
+    setErrorMessage('')
+  }
+
+  function cancelEditingNote() {
+    setEditingNoteId(null)
+    setEditingNoteBody('')
+  }
+
+  function saveNote(event, note) {
+    event.preventDefault()
+    const body = editingNoteBody.trim()
+
+    if (!body) {
+      return
+    }
+
+    runChange(async () => {
+      const { error } = await supabase
+        .from('task_notes')
+        .update({ body, updated_at: new Date().toISOString() })
+        .eq('id', note.id)
+
+      if (error) {
+        throw error
+      }
+
+      cancelEditingNote()
+    })
+  }
+
+  function deleteNote(note) {
+    const confirmed = window.confirm('¿Quieres borrar esta nota?')
+
+    if (!confirmed) {
+      return
+    }
+
+    runChange(async () => {
+      const { error } = await supabase.from('task_notes').delete().eq('id', note.id)
+
+      if (error) {
+        throw error
+      }
+
+      if (editingNoteId === note.id) {
+        cancelEditingNote()
+      }
+    })
+  }
+
   function toggleChecklistItem(item) {
     runChange(async () => {
       const { error } = await supabase
@@ -146,8 +207,56 @@ function TaskDetails({ task, notes, checklistItems, onChange }) {
             <div className="task-details__notes">
               {notes.map((note) => (
                 <article className="task-details__note" key={note.id}>
-                  <p>{note.body}</p>
-                  <small>{formatDateTime(note.created_at)}</small>
+                  {editingNoteId === note.id && note.created_by === currentUserId ? (
+                    <form onSubmit={(event) => saveNote(event, note)}>
+                      <textarea
+                        value={editingNoteBody}
+                        onChange={(event) => setEditingNoteBody(event.target.value)}
+                        rows="3"
+                        disabled={saving}
+                      />
+                      <div className="task-details__note-actions">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={cancelEditingNote}
+                          disabled={saving}
+                        >
+                          Cancelar
+                        </button>
+                        <button type="submit" disabled={saving || !editingNoteBody.trim()}>
+                          Guardar
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <p>{note.body}</p>
+                      <div className="task-details__note-footer">
+                        <small>{formatDateTime(note.created_at)}</small>
+                        {note.created_by === currentUserId ? (
+                          <div className="task-details__note-actions">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => startEditingNote(note)}
+                              disabled={saving}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary-button danger-button"
+                              onClick={() => deleteNote(note)}
+                              disabled={saving}
+                            >
+                              Borrar
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
                 </article>
               ))}
             </div>
