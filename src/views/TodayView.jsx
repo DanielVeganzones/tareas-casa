@@ -9,6 +9,8 @@ function TodayView({
   onMarkPending,
   completingTaskId,
   pendingTaskId,
+  taskDetailsById,
+  onTaskDetailsChange,
 }) {
   const sections = getTodayTaskSections(tasks)
   const totalVisible =
@@ -44,6 +46,8 @@ function TodayView({
         tasks={sections.overdue}
         onComplete={onComplete}
         completingTaskId={completingTaskId}
+        taskDetailsById={taskDetailsById}
+        onTaskDetailsChange={onTaskDetailsChange}
       />
 
       <TaskSection
@@ -53,6 +57,8 @@ function TodayView({
         tasks={sections.today}
         onComplete={onComplete}
         completingTaskId={completingTaskId}
+        taskDetailsById={taskDetailsById}
+        onTaskDetailsChange={onTaskDetailsChange}
       />
 
       <TaskSection
@@ -62,6 +68,8 @@ function TodayView({
         tasks={sections.available}
         onComplete={onComplete}
         completingTaskId={completingTaskId}
+        taskDetailsById={taskDetailsById}
+        onTaskDetailsChange={onTaskDetailsChange}
       />
     </div>
   )

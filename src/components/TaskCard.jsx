@@ -4,6 +4,7 @@ import {
   getTaskAvailability,
   isOneOffTask,
 } from '../lib/task-utils'
+import TaskDetails from './TaskDetails'
 
 function getStatusText(availability) {
   if (availability.isOneOff) {
@@ -45,7 +46,16 @@ function getAvailabilityText(availability) {
   return `Se habilita el ${formatDate(availability.availableFrom)}`
 }
 
-function TaskCard({ task, onComplete, onDelete, pending, deleting }) {
+function TaskCard({
+  task,
+  onComplete,
+  onDelete,
+  pending,
+  deleting,
+  notes,
+  checklistItems,
+  onTaskDetailsChange,
+}) {
   const availability = getTaskAvailability(task)
   const disabled = pending || deleting || !availability.canComplete
 
@@ -89,6 +99,13 @@ function TaskCard({ task, onComplete, onDelete, pending, deleting }) {
           {pending ? '...' : 'Hecha'}
         </button>
       </div>
+
+      <TaskDetails
+        task={task}
+        notes={notes}
+        checklistItems={checklistItems}
+        onChange={onTaskDetailsChange}
+      />
     </article>
   )
 }

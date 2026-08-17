@@ -164,6 +164,10 @@ small {
   border: 1px solid rgba(79, 111, 82, 0.12);
 }
 
+.task-card {
+  flex-wrap: wrap;
+}
+
 .task-card__content {
   min-width: 0;
 }
@@ -173,6 +177,117 @@ small {
   flex-direction: column;
   gap: 10px;
   align-self: center;
+}
+
+.task-details {
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(79, 111, 82, 0.12);
+}
+
+.task-details__toggles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-details__toggle {
+  padding: 8px 12px;
+  font-size: 0.86rem;
+}
+
+.task-details__toggle.is-active {
+  background: rgba(49, 115, 84, 0.14);
+  border-color: rgba(49, 115, 84, 0.3);
+  color: var(--accent-strong);
+}
+
+.task-details__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.task-details__notes,
+.task-details__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-details__note,
+.task-details__checklist li {
+  padding: 11px 12px;
+  border: 1px solid rgba(79, 111, 82, 0.12);
+  border-radius: 14px;
+  background: white;
+}
+
+.task-details__note p {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+
+.task-details__checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-details__check-item {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.task-details__check-item input {
+  width: 18px;
+  height: 18px;
+}
+
+.task-details__check-item input:checked + span {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.task-details__delete {
+  padding: 7px 10px;
+  font-size: 0.8rem;
+}
+
+.task-details__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-details__form button {
+  align-self: flex-start;
+}
+
+.task-details__form--inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.task-details__form--inline button {
+  align-self: auto;
+}
+
+.task-details__error {
+  margin: 12px 0 0;
+  color: #8e2a2a;
+  font-size: 0.9rem;
 }
 
 .task-card__header {
@@ -368,7 +483,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   box-sizing: border-box;
   width: 100%;
   padding: 12px 14px;
@@ -660,6 +776,14 @@ select {
   .history-item__actions {
     align-items: stretch;
     width: 100%;
+  }
+
+  .task-details__form--inline {
+    grid-template-columns: 1fr;
+  }
+
+  .task-details__form--inline button {
+    align-self: flex-start;
   }
 
   .complete-button,

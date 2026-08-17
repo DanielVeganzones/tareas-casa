@@ -72,6 +72,8 @@ function App() {
   const [tasks, setTasks] = useState([])
   const [history, setHistory] = useState([])
   const [members, setMembers] = useState([])
+  const [taskNotes, setTaskNotes] = useState([])
+  const [taskChecklistItems, setTaskChecklistItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [activeTab, setActiveTab] = useState('today')
@@ -103,6 +105,29 @@ function App() {
     () => new Map(members.map((member) => [member.user_id, member])),
     [members],
   )
+  const taskDetailsById = useMemo(() => {
+    const detailsById = new Map()
+
+    taskNotes.forEach((note) => {
+      const details = detailsById.get(note.task_id) ?? {
+        notes: [],
+        checklistItems: [],
+      }
+      details.notes.push(note)
+      detailsById.set(note.task_id, details)
+    })
+
+    taskChecklistItems.forEach((item) => {
+      const details = detailsById.get(item.task_id) ?? {
+        notes: [],
+        checklistItems: [],
+      }
+      details.checklistItems.push(item)
+      detailsById.set(item.task_id, details)
+    })
+
+    return detailsById
+  }, [taskChecklistItems, taskNotes])
   const undoableCompletionIds = useMemo(() => {
     const latestActiveByTask = new Map()
     const todayKey = getTodayDateKey()
@@ -159,6 +184,8 @@ function App() {
       setTasks([])
       setHistory([])
       setMembers([])
+      setTaskNotes([])
+      setTaskChecklistItems([])
       setSelectedCompleterId(null)
       setLoading(false)
       return
@@ -197,14 +224,17 @@ function App() {
       setHouseholdId(membership.household_id)
 
       const nextTasks = await loadTasks(membership.household_id)
-      const [nextHistory, nextMembers] = await Promise.all([
+      const [nextHistory, nextMembers, nextTaskDetails] = await Promise.all([
         loadHistory(nextTasks.map((task) => task.id)),
         loadMembers(membership.household_id, membership),
+        loadTaskDetails(nextTasks.map((task) => task.id)),
       ])
 
       setTasks(nextTasks)
       setHistory(nextHistory)
       setMembers(nextMembers)
+      setTaskNotes(nextTaskDetails.notes)
+      setTaskChecklistItems(nextTaskDetails.checklistItems)
     } catch (error) {
       console.error(error)
       setErrorMessage(error.message ?? 'No se pudieron cargar los datos.')
@@ -307,6 +337,38 @@ function App() {
     return data?.length ? data : [ownMembership]
   }
 
+  async function loadTaskDetails(taskIds) {
+    if (taskIds.length === 0) {
+      return { notes: [], checklistItems: [] }
+    }
+
+    const [notesQuery, checklistQuery] = await Promise.all([
+      supabase
+        .from('task_notes')
+        .select('id, task_id, body, created_at')
+        .in('task_id', taskIds)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('task_checklist_items')
+        .select('id, task_id, label, sort_order, is_checked')
+        .in('task_id', taskIds)
+        .order('sort_order', { ascending: true }),
+    ])
+
+    if (notesQuery.error) {
+      throw notesQuery.error
+    }
+
+    if (checklistQuery.error) {
+      throw checklistQuery.error
+    }
+
+    return {
+      notes: notesQuery.data ?? [],
+      checklistItems: checklistQuery.data ?? [],
+    }
+  }
+
   async function refreshHouseholdData() {
     if (!householdId) {
       return
@@ -317,6 +379,16 @@ function App() {
 
     setTasks(nextTasks)
     setHistory(nextHistory)
+    await refreshTaskDetails(nextTasks)
+  }
+
+  async function refreshTaskDetails(nextTasks = tasks) {
+    const nextTaskDetails = await loadTaskDetails(
+      nextTasks.map((task) => task.id),
+    )
+
+    setTaskNotes(nextTaskDetails.notes)
+    setTaskChecklistItems(nextTaskDetails.checklistItems)
   }
 
   async function handleCreateTask(formValues) {
@@ -607,6 +679,8 @@ function App() {
             onMarkPending={handleMarkDemandTaskPending}
             completingTaskId={completingTaskId}
             pendingTaskId={markingPendingTaskId}
+            taskDetailsById={taskDetailsById}
+            onTaskDetailsChange={refreshTaskDetails}
           />
         )}
 
@@ -627,6 +701,8 @@ function App() {
             pendingTaskId={markingPendingTaskId}
             deletingTaskId={deletingTaskId}
             savingTask={savingTask}
+            taskDetailsById={taskDetailsById}
+            onTaskDetailsChange={refreshTaskDetails}
           />
         )}
 

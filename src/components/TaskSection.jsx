@@ -9,6 +9,8 @@ function TaskSection({
   onDelete,
   completingTaskId,
   deletingTaskId,
+  taskDetailsById,
+  onTaskDetailsChange,
 }) {
   return (
     <section className="content-card">
@@ -32,6 +34,9 @@ function TaskSection({
               onDelete={onDelete}
               pending={completingTaskId === task.id}
               deleting={deletingTaskId === task.id}
+              notes={taskDetailsById.get(task.id)?.notes ?? []}
+              checklistItems={taskDetailsById.get(task.id)?.checklistItems ?? []}
+              onTaskDetailsChange={onTaskDetailsChange}
             />
           ))}
         </div>
