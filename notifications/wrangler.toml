@@ -1,0 +1,10 @@
+name = "tareas-casa-notifications"
+main = "worker.mjs"
+compatibility_date = "2026-08-17"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Cloudflare Cron usa UTC. El Worker se ejecuta cada hora y dentro calcula
+# las 09:00 y las 22:00 en Europe/Madrid, incluidas las transiciones de DST.
+[triggers]
+crons = ["0 * * * *"]

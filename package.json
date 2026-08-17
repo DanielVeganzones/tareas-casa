@@ -7,12 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "notifications:dev": "wrangler dev --config notifications/wrangler.toml",
+    "notifications:deploy": "wrangler deploy --config notifications/wrangler.toml"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -23,6 +26,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "wrangler": "^4.123.0"
   }
 }

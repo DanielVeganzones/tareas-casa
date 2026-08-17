@@ -1,3 +1,12 @@
+# Tareas de casa
+
+## Notificaciones
+
+La configuración de avisos push para Cloudflare y Supabase está en
+[`notifications/README.md`](notifications/README.md).
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

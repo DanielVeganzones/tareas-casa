@@ -4,7 +4,9 @@ import AppHeader from './components/AppHeader'
 import BottomNav from './components/BottomNav'
 import CompletionContextCard from './components/CompletionContextCard'
 import LoginView from './components/LoginView'
+import NotificationSettings from './components/NotificationSettings'
 import { supabase } from './lib/supabase'
+import { notifyPendingDemandTask } from './lib/notifications'
 import {
   calculateNextDueDate,
   getTaskAvailability,
@@ -465,6 +467,15 @@ function App() {
     }
 
     await refreshHouseholdData()
+
+    notifyPendingDemandTask({
+      accessToken: session?.access_token,
+      householdId,
+      taskName: task.name,
+    }).catch((error) => {
+      console.warn('No se pudo enviar el aviso de tarea pendiente.', error)
+    })
+
     setMarkingPendingTaskId(null)
   }
 
@@ -573,6 +584,8 @@ function App() {
           onChange={setSelectedCompleterId}
           resolveMemberLabel={resolveMemberLabel}
         />
+
+        <NotificationSettings session={session} householdId={householdId} />
 
         {activeTab === 'today' && (
           <TodayView

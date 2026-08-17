@@ -1,0 +1,7 @@
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_ANON_KEY=tu-anon-key
+SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
+ALLOWED_ORIGIN=https://tu-app.pages.dev
+VAPID_PUBLIC_KEY=clave-publica-vapid
+VAPID_PRIVATE_KEY=clave-privada-vapid
+VAPID_SUBJECT=mailto:tu-correo@example.com

@@ -53,6 +53,33 @@
   margin: 0 0 6px;
 }
 
+.notification-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin: -4px 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-alt);
+}
+
+.notification-settings p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.notification-settings__status {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.notification-settings__message {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+}
+
 .completion-context p {
   margin: 0;
   color: var(--muted);
@@ -600,6 +627,10 @@ select {
   }
 
   .completion-context {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-settings {
     grid-template-columns: 1fr;
   }
 
