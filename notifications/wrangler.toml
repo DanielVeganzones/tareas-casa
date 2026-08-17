@@ -4,6 +4,12 @@ compatibility_date = "2026-08-17"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
+[vars]
+ALLOWED_ORIGIN = "https://tareas-casa.daniel-veganzones.workers.dev"
+SUPABASE_ANON_KEY = "sb_publishable_713zpxQDwRwWYx9VFRLcBg_gF2XseG-"
+SUPABASE_URL = "https://jhszkyslyskhjlyvslcg.supabase.co"
+VAPID_PUBLIC_KEY = "BF_3uX0iSjvz6CPvNRNC00qAHQP650yTYnxTA-wAkG94MqrAQvoU33mjaNgoq2B7KzNpH-kqT-vlV6-tS1Pzf9w"
+
 # Cloudflare Cron usa UTC. El Worker se ejecuta cada hora y dentro calcula
 # las 09:00 y las 22:00 en Europe/Madrid, incluidas las transiciones de DST.
 [triggers]
