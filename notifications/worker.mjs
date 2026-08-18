@@ -190,15 +190,18 @@ function getEndpointLabel(endpoint) {
   return endpoint ? endpoint.slice(-12) : 'sin-endpoint'
 }
 
-async function removeSubscription(env, endpoint) {
-  await supabaseRequest(
-    env,
-    `push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`,
-    { method: 'DELETE' },
-  )
+async function removeSubscription(env, endpoint, userAuthorization) {
+  const path = `push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`
+
+  if (userAuthorization) {
+    await supabaseUserRequest(env, path, userAuthorization, { method: 'DELETE' })
+    return
+  }
+
+  await supabaseRequest(env, path, { method: 'DELETE' })
 }
 
-async function sendPush(env, subscription, notification) {
+async function sendPush(env, subscription, notification, userAuthorization) {
   try {
     const response = await webpush.sendNotification(
       subscription,
@@ -209,6 +212,7 @@ async function sendPush(env, subscription, notification) {
       statusCode: response?.statusCode ?? null,
       tag: notification.tag,
     })
+    return { sent: true, removed: false, failed: false }
   } catch (error) {
     console.error('push fallido', {
       endpoint: getEndpointLabel(subscription.endpoint),
@@ -218,11 +222,22 @@ async function sendPush(env, subscription, notification) {
     })
 
     if (error.statusCode === 404 || error.statusCode === 410) {
-      await removeSubscription(env, subscription.endpoint)
-      return
+      try {
+        await removeSubscription(env, subscription.endpoint, userAuthorization)
+        console.log('suscripcion caducada eliminada', {
+          endpoint: getEndpointLabel(subscription.endpoint),
+        })
+        return { sent: false, removed: true, failed: false }
+      } catch (cleanupError) {
+        console.warn('no se pudo eliminar suscripcion caducada', {
+          endpoint: getEndpointLabel(subscription.endpoint),
+          error: cleanupError.message,
+        })
+        return { sent: false, removed: false, failed: false }
+      }
     }
 
-    throw error
+    return { sent: false, removed: false, failed: true }
   }
 }
 
@@ -268,7 +283,7 @@ async function notifyHousehold(
     tag: notification.tag,
   })
 
-  await Promise.all(
+  const results = await Promise.all(
     subscriptions.map((subscription) =>
       sendPush(
         env,
@@ -277,9 +292,17 @@ async function notifyHousehold(
           keys: { p256dh: subscription.p256dh, auth: subscription.auth },
         },
         notification,
+        userAuthorization,
       ),
     ),
   )
+
+  return {
+    failed: results.filter((result) => result.failed).length,
+    removed: results.filter((result) => result.removed).length,
+    sent: results.filter((result) => result.sent).length,
+    total: subscriptions.length,
+  }
 }
 
 function formatTaskList(tasks) {
@@ -468,7 +491,7 @@ async function handleTaskActivity(request, env, type) {
     actorUserId: authorization.user.id,
     excludedEndpoint: getEndpointLabel(excludedEndpoint),
   })
-  await notifyHousehold(
+  const result = await notifyHousehold(
     env,
     householdId,
     {
@@ -482,7 +505,7 @@ async function handleTaskActivity(request, env, type) {
     userAuthorization,
   )
 
-  return json({ ok: true }, env)
+  return json({ ok: true, ...result }, env)
 }
 
 export default {
