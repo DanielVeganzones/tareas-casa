@@ -522,6 +522,9 @@ function App() {
       taskName: task.name,
     }).catch((error) => {
       console.warn('No se pudo enviar el aviso de tarea completada.', error)
+      setErrorMessage(
+        `La tarea se ha guardado, pero no se pudo enviar el aviso: ${error.message}`,
+      )
     })
 
     setCompletingTaskId(null)
@@ -558,6 +561,9 @@ function App() {
       taskName: task.name,
     }).catch((error) => {
       console.warn('No se pudo enviar el aviso de tarea pendiente.', error)
+      setErrorMessage(
+        `La tarea se ha creado, pero no se pudo enviar el aviso: ${error.message}`,
+      )
     })
 
     setMarkingPendingTaskId(null)

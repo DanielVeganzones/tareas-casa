@@ -23,6 +23,12 @@ function base64urlToUint8Array(base64url) {
   return bytes
 }
 
+function assertNotificationsApiAvailable() {
+  if (!isPushNotificationSetupAvailable()) {
+    throw new Error('Las notificaciones no están configuradas en esta versión.')
+  }
+}
+
 export function arePushNotificationsSupported() {
   return (
     typeof window !== 'undefined' &&
@@ -191,8 +197,10 @@ export async function notifyPendingDemandTask({
   householdId,
   taskName,
 }) {
-  if (!isPushNotificationSetupAvailable()) {
-    return
+  assertNotificationsApiAvailable()
+
+  if (!accessToken) {
+    throw new Error('No hay sesión activa para enviar el aviso.')
   }
 
   const subscription = await getPushSubscription()
@@ -209,8 +217,10 @@ export async function notifyCompletedTask({
   householdId,
   taskName,
 }) {
-  if (!isPushNotificationSetupAvailable()) {
-    return
+  assertNotificationsApiAvailable()
+
+  if (!accessToken) {
+    throw new Error('No hay sesión activa para enviar el aviso.')
   }
 
   const subscription = await getPushSubscription()

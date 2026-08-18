@@ -174,6 +174,10 @@ function configureWebPush(env) {
   )
 }
 
+function getEndpointLabel(endpoint) {
+  return endpoint ? endpoint.slice(-12) : 'sin-endpoint'
+}
+
 async function removeSubscription(env, endpoint) {
   await supabaseRequest(
     env,
@@ -184,8 +188,23 @@ async function removeSubscription(env, endpoint) {
 
 async function sendPush(env, subscription, notification) {
   try {
-    await webpush.sendNotification(subscription, JSON.stringify(notification))
+    const response = await webpush.sendNotification(
+      subscription,
+      JSON.stringify(notification),
+    )
+    console.log('push enviado', {
+      endpoint: getEndpointLabel(subscription.endpoint),
+      statusCode: response?.statusCode ?? null,
+      tag: notification.tag,
+    })
   } catch (error) {
+    console.error('push fallido', {
+      endpoint: getEndpointLabel(subscription.endpoint),
+      statusCode: error.statusCode ?? null,
+      body: error.body ?? error.message,
+      tag: notification.tag,
+    })
+
     if (error.statusCode === 404 || error.statusCode === 410) {
       await removeSubscription(env, subscription.endpoint)
       return
@@ -228,6 +247,14 @@ async function notifyHousehold(
     excludedEndpoint,
     userAuthorization,
   )
+
+  console.log('notificando hogar', {
+    householdId,
+    count: subscriptions.length,
+    excludedEndpoint: getEndpointLabel(excludedEndpoint),
+    title: notification.title,
+    tag: notification.tag,
+  })
 
   await Promise.all(
     subscriptions.map((subscription) =>
@@ -423,6 +450,12 @@ async function handleTaskActivity(request, env, type) {
   configureWebPush(env)
   const isCompleted = type === 'completed'
   const userAuthorization = request.headers.get('Authorization')
+  console.log('actividad de tarea', {
+    householdId,
+    type,
+    actorUserId: authorization.user.id,
+    excludedEndpoint: getEndpointLabel(excludedEndpoint),
+  })
   await notifyHousehold(
     env,
     householdId,
