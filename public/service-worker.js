@@ -1,18 +1,23 @@
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting())
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
+})
+
 self.addEventListener('push', (event) => {
-  if (!event.data) {
-    return
+  const data = event.data ? event.data.json() : {}
+
+  const options = {
+    body: data.body ?? '',
+    tag: data.tag,
+    data: data.data,
+    requireInteraction: false,
   }
 
-  const data = event.data.json()
-
   event.waitUntil(
-    self.registration.showNotification(data.title ?? 'Tareas del hogar', {
-      body: data.body ?? '',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
-      tag: data.tag,
-      data: data.data,
-    }),
+    self.registration.showNotification(data.title ?? 'Tareas del hogar', options),
   )
 })
 

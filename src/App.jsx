@@ -68,6 +68,7 @@ function shortUserId(userId) {
 
 function App() {
   const [session, setSession] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [householdId, setHouseholdId] = useState(null)
   const [tasks, setTasks] = useState([])
   const [history, setHistory] = useState([])
@@ -165,14 +166,19 @@ function App() {
   }, [history, tasksById])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data.session)
+      })
+      .finally(() => {
+        setAuthLoading(false)
+      })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
+      setAuthLoading(false)
     })
 
     return () => subscription.unsubscribe()
@@ -635,11 +641,7 @@ function App() {
     return userId === session?.user.id ? 'Tú' : shortUserId(userId)
   }
 
-  if (!session) {
-    return <LoginView />
-  }
-
-  if (loading) {
+  if (authLoading || (session && loading)) {
     return (
       <main className="app-shell">
         <section className="content-card">
@@ -648,6 +650,10 @@ function App() {
         </section>
       </main>
     )
+  }
+
+  if (!session) {
+    return <LoginView />
   }
 
   const tabMeta = TAB_META[activeTab]

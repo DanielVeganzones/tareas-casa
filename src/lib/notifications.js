@@ -63,12 +63,17 @@ async function sendNotificationsApiRequest(
   }
 }
 
-async function getPushSubscription() {
-  const registration = await navigator.serviceWorker.getRegistration(
-    '/service-worker.js',
-  )
+async function ensureServiceWorkerRegistration() {
+  const registration = await navigator.serviceWorker.register('/service-worker.js')
+  await registration.update().catch(() => undefined)
 
-  return registration?.pushManager.getSubscription() ?? null
+  return navigator.serviceWorker.ready
+}
+
+async function getPushSubscription() {
+  const registration = await ensureServiceWorkerRegistration()
+
+  return registration.pushManager.getSubscription() ?? null
 }
 
 async function removeLocalPushSubscription() {
@@ -132,8 +137,7 @@ export async function subscribeToPushNotifications({
     throw new Error('No has permitido las notificaciones en este dispositivo.')
   }
 
-  await navigator.serviceWorker.register('/service-worker.js')
-  const registration = await navigator.serviceWorker.ready
+  const registration = await ensureServiceWorkerRegistration()
   const subscription =
     (await registration.pushManager.getSubscription()) ??
     (await registration.pushManager.subscribe({
