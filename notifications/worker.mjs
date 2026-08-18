@@ -166,9 +166,21 @@ async function getAuthorizedUser(request, env, householdId) {
   return { user }
 }
 
+function normalizeVapidSubject(subject) {
+  if (!subject) {
+    return subject
+  }
+
+  if (subject.startsWith('mailto:') || /^https?:\/\//.test(subject)) {
+    return subject
+  }
+
+  return subject.includes('@') ? `mailto:${subject}` : subject
+}
+
 function configureWebPush(env) {
   webpush.setVapidDetails(
-    env.VAPID_SUBJECT,
+    normalizeVapidSubject(env.VAPID_SUBJECT),
     env.VAPID_PUBLIC_KEY,
     env.VAPID_PRIVATE_KEY,
   )
