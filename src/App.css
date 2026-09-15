@@ -180,6 +180,10 @@ small {
   border: 1px solid rgba(79, 111, 82, 0.12);
 }
 
+.history-item {
+  position: relative;
+}
+
 .task-card {
   flex-wrap: wrap;
 }
@@ -620,6 +624,114 @@ textarea {
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+  padding-top: 46px;
+}
+
+.history-item__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.history-item__edit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.history-item__edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.history-item__date-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.history-item__date-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.history-item__date-form input {
+  width: min(100%, 190px);
+}
+
+.history-item__date-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.history-item__date-actions button {
+  padding: 9px 11px;
+  font-size: 0.85rem;
+}
+
+.history-item__details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(79, 111, 82, 0.12);
+}
+
+.history-item__details section {
+  min-width: 0;
+}
+
+.history-item__details h3 {
+  margin: 0 0 5px;
+  color: var(--text-strong);
+  font-size: 0.88rem;
+}
+
+.history-item__details p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.history-item__details ul {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-item__details li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--text-strong);
+}
+
+.history-item__details li span {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.history-item__details li.is-checked {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .history-item__badge {
@@ -853,6 +965,13 @@ textarea {
   .history-item__actions {
     align-items: stretch;
     width: 100%;
+  }
+
+  .history-item__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding-top: 0;
   }
 
   .task-details__form--inline {

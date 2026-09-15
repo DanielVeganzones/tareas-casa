@@ -84,6 +84,7 @@ function App() {
   const [markingPendingTaskId, setMarkingPendingTaskId] = useState(null)
   const [deletingTaskId, setDeletingTaskId] = useState(null)
   const [undoingCompletionId, setUndoingCompletionId] = useState(null)
+  const [updatingCompletionId, setUpdatingCompletionId] = useState(null)
   const [selectedCompleterId, setSelectedCompleterId] = useState(null)
 
   const activeTasks = useMemo(
@@ -601,6 +602,98 @@ function App() {
     setUndoingCompletionId(null)
   }
 
+  async function handleUpdateCompletionDate(completion, dateKey) {
+    if (!dateKey) {
+      return false
+    }
+
+    const selectedDate = new Date(`${dateKey}T12:00:00`)
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+
+    if (Number.isNaN(selectedDate.getTime()) || selectedDate > today) {
+      setErrorMessage('La fecha de realización no puede ser posterior a hoy.')
+      return false
+    }
+
+    const originalDate = completion.completed_at
+      ? new Date(completion.completed_at)
+      : new Date()
+    const completedAt = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      Number.isNaN(originalDate.getTime()) ? 12 : originalDate.getHours(),
+      Number.isNaN(originalDate.getTime()) ? 0 : originalDate.getMinutes(),
+      Number.isNaN(originalDate.getTime()) ? 0 : originalDate.getSeconds(),
+      Number.isNaN(originalDate.getTime()) ? 0 : originalDate.getMilliseconds(),
+    ).toISOString()
+    const task = tasksById.get(completion.task_id)
+    const historyWithUpdatedDate = history.map((historyCompletion) =>
+      historyCompletion.id === completion.id
+        ? { ...historyCompletion, completed_at: completedAt }
+        : historyCompletion,
+    )
+    const latestActiveCompletion = historyWithUpdatedDate
+      .filter(
+        (historyCompletion) =>
+          historyCompletion.task_id === completion.task_id &&
+          !historyCompletion.reverted_at,
+      )
+      .sort((firstCompletion, secondCompletion) => {
+        const firstDate = new Date(firstCompletion.completed_at).getTime()
+        const secondDate = new Date(secondCompletion.completed_at).getTime()
+        return secondDate - firstDate
+      })[0]
+    const nextDueDate =
+      latestActiveCompletion?.id === completion.id && task
+        ? calculateNextDueDate(task, new Date(completedAt))
+        : null
+    const completionUpdate = { completed_at: completedAt }
+
+    if (
+      nextDueDate &&
+      Object.hasOwn(completion, 'resulting_due_date')
+    ) {
+      completionUpdate.resulting_due_date = nextDueDate
+    }
+
+    setUpdatingCompletionId(completion.id)
+    setErrorMessage('')
+
+    const { error } = await supabase
+      .from('task_completions')
+      .update(completionUpdate)
+      .eq('id', completion.id)
+
+    if (error) {
+      setErrorMessage(
+        'No se pudo editar la fecha. Ejecuta la migración edit-completion-date.sql para dar permiso a los miembros de la casa.',
+      )
+      setUpdatingCompletionId(null)
+      return false
+    }
+
+    if (nextDueDate) {
+      const { error: taskUpdateError } = await supabase
+        .from('tasks')
+        .update({ next_due_date: nextDueDate })
+        .eq('id', completion.task_id)
+
+      if (taskUpdateError) {
+        setErrorMessage(
+          'La fecha del completado se ha guardado, pero no se pudo actualizar la próxima repetición.',
+        )
+        setUpdatingCompletionId(null)
+        return false
+      }
+    }
+
+    await refreshHouseholdData()
+    setUpdatingCompletionId(null)
+    return true
+  }
+
   async function handleDeleteTask(task) {
     const confirmed = window.confirm(
       `¿Seguro que quieres borrar "${task.name}"?`,
@@ -724,11 +817,14 @@ function App() {
             history={history}
             tasksById={tasksById}
             resolveMemberLabel={resolveMemberLabel}
+            taskDetailsById={taskDetailsById}
             canUndoCompletion={(completion) =>
               undoableCompletionIds.has(completion.id)
             }
             onUndoCompletion={handleUndoCompletion}
             undoingCompletionId={undoingCompletionId}
+            onUpdateCompletionDate={handleUpdateCompletionDate}
+            updatingCompletionId={updatingCompletionId}
           />
         )}
       </main>
