@@ -42,6 +42,8 @@ const TAB_META = {
   },
 }
 
+const HISTORY_PAGE_SIZE = 20
+
 function getMemberName(member) {
   if (!member) {
     return null
@@ -72,6 +74,9 @@ function App() {
   const [householdId, setHouseholdId] = useState(null)
   const [tasks, setTasks] = useState([])
   const [history, setHistory] = useState([])
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyPage, setHistoryPage] = useState(0)
+  const [loadingHistoryPage, setLoadingHistoryPage] = useState(false)
   const [members, setMembers] = useState([])
   const [taskNotes, setTaskNotes] = useState([])
   const [taskChecklistItems, setTaskChecklistItems] = useState([])
@@ -190,6 +195,8 @@ function App() {
       setHouseholdId(null)
       setTasks([])
       setHistory([])
+      setHistoryTotal(0)
+      setHistoryPage(0)
       setMembers([])
       setTaskNotes([])
       setTaskChecklistItems([])
@@ -238,7 +245,9 @@ function App() {
       ])
 
       setTasks(nextTasks)
-      setHistory(nextHistory)
+      setHistory(nextHistory.items)
+      setHistoryTotal(nextHistory.total)
+      setHistoryPage(0)
       setMembers(nextMembers)
       setTaskNotes(nextTaskDetails.notes)
       setTaskChecklistItems(nextTaskDetails.checklistItems)
@@ -280,43 +289,59 @@ function App() {
     return data ?? []
   }
 
-  async function loadHistory(taskIds) {
+  async function loadHistory(taskIds, page = 0) {
     if (taskIds.length === 0) {
-      return []
+      return { items: [], total: 0 }
     }
+
+    const from = page * HISTORY_PAGE_SIZE
+    const to = from + HISTORY_PAGE_SIZE - 1
 
     const detailedQuery = await supabase
       .from('task_completions')
       .select(
         'id, task_id, completed_by, completed_at, previous_due_date, resulting_due_date, reverted_at, reverted_by',
+        { count: 'exact' },
       )
       .in('task_id', taskIds)
       .order('completed_at', { ascending: false })
+      .range(from, to)
 
     if (!detailedQuery.error) {
-      return detailedQuery.data ?? []
+      return {
+        items: detailedQuery.data ?? [],
+        total: detailedQuery.count ?? 0,
+      }
     }
 
     const withDateQuery = await supabase
       .from('task_completions')
-      .select('id, task_id, completed_by, completed_at')
+      .select('id, task_id, completed_by, completed_at', { count: 'exact' })
       .in('task_id', taskIds)
       .order('completed_at', { ascending: false })
+      .range(from, to)
 
     if (!withDateQuery.error) {
-      return withDateQuery.data ?? []
+      return {
+        items: withDateQuery.data ?? [],
+        total: withDateQuery.count ?? 0,
+      }
     }
 
     const legacyQuery = await supabase
       .from('task_completions')
-      .select('id, task_id, completed_by')
+      .select('id, task_id, completed_by', { count: 'exact' })
       .in('task_id', taskIds)
+      .range(from, to)
 
     if (legacyQuery.error) {
       throw detailedQuery.error
     }
 
-    return legacyQuery.data ?? []
+    return {
+      items: legacyQuery.data ?? [],
+      total: legacyQuery.count ?? 0,
+    }
   }
 
   async function loadMembers(nextHouseholdId, ownMembership) {
@@ -376,17 +401,42 @@ function App() {
     }
   }
 
-  async function refreshHouseholdData() {
+  async function refreshHouseholdData(page = historyPage) {
     if (!householdId) {
       return
     }
 
     const nextTasks = await loadTasks(householdId)
-    const nextHistory = await loadHistory(nextTasks.map((task) => task.id))
+    const nextHistory = await loadHistory(nextTasks.map((task) => task.id), page)
 
     setTasks(nextTasks)
-    setHistory(nextHistory)
+    setHistory(nextHistory.items)
+    setHistoryTotal(nextHistory.total)
+    setHistoryPage(page)
     await refreshTaskDetails(nextTasks)
+  }
+
+  async function handleHistoryPageChange(nextPage) {
+    if (nextPage < 0 || nextPage === historyPage) {
+      return
+    }
+
+    setLoadingHistoryPage(true)
+    setErrorMessage('')
+
+    try {
+      const nextHistory = await loadHistory(
+        tasks.map((task) => task.id),
+        nextPage,
+      )
+      setHistory(nextHistory.items)
+      setHistoryTotal(nextHistory.total)
+      setHistoryPage(nextPage)
+    } catch (error) {
+      setErrorMessage(error.message ?? 'No se pudo cargar esa página del historial.')
+    } finally {
+      setLoadingHistoryPage(false)
+    }
   }
 
   async function refreshTaskDetails(nextTasks = tasks) {
@@ -434,7 +484,7 @@ function App() {
       return false
     }
 
-    await refreshHouseholdData()
+    await refreshHouseholdData(0)
     setSavingTask(false)
     setShowTaskForm(false)
     return true
@@ -521,7 +571,7 @@ function App() {
       }
     }
 
-    await refreshHouseholdData()
+    await refreshHouseholdData(0)
 
     notifyCompletedTask({
       accessToken: session?.access_token,
@@ -560,7 +610,7 @@ function App() {
       return
     }
 
-    await refreshHouseholdData()
+    await refreshHouseholdData(0)
 
     notifyPendingDemandTask({
       accessToken: session?.access_token,
@@ -598,7 +648,7 @@ function App() {
       return
     }
 
-    await refreshHouseholdData()
+    await refreshHouseholdData(0)
     setUndoingCompletionId(null)
   }
 
@@ -689,7 +739,7 @@ function App() {
       }
     }
 
-    await refreshHouseholdData()
+    await refreshHouseholdData(0)
     setUpdatingCompletionId(null)
     return true
   }
@@ -825,6 +875,11 @@ function App() {
             undoingCompletionId={undoingCompletionId}
             onUpdateCompletionDate={handleUpdateCompletionDate}
             updatingCompletionId={updatingCompletionId}
+            currentPage={historyPage}
+            pageSize={HISTORY_PAGE_SIZE}
+            totalHistoryItems={historyTotal}
+            onPageChange={handleHistoryPageChange}
+            loadingPage={loadingHistoryPage}
           />
         )}
       </main>

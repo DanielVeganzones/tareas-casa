@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import TaskDetails from '../components/TaskDetails'
 import { formatDateTime, getTodayDateKey } from '../lib/task-utils'
 
 function getTaskName(completion, tasksById) {
@@ -37,6 +38,11 @@ function HistoryView({
   undoingCompletionId,
   onUpdateCompletionDate,
   updatingCompletionId,
+  currentPage,
+  pageSize,
+  totalHistoryItems,
+  onPageChange,
+  loadingPage,
 }) {
   const [editingCompletionId, setEditingCompletionId] = useState(null)
   const [editedDate, setEditedDate] = useState('')
@@ -55,6 +61,8 @@ function HistoryView({
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(totalHistoryItems / pageSize))
+
   return (
     <section className="content-card">
       <div className="section-heading">
@@ -62,7 +70,7 @@ function HistoryView({
           <h2>Historial</h2>
           <p>Últimas tareas completadas en la casa.</p>
         </div>
-        <span className="counter-chip">{history.length}</span>
+        <span className="counter-chip">{totalHistoryItems}</span>
       </div>
 
       {history.length === 0 ? (
@@ -70,9 +78,7 @@ function HistoryView({
       ) : (
         <div className="history-list">
           {history.map((completion) => {
-            const taskDetails = taskDetailsById.get(completion.task_id)
-            const note = taskDetails?.notes[0]
-            const checklistItems = taskDetails?.checklistItems ?? []
+            const task = tasksById.get(completion.task_id)
             const isEditing = editingCompletionId === completion.id
             const isUpdating = updatingCompletionId === completion.id
 
@@ -122,38 +128,16 @@ function HistoryView({
                     </p>
                   )}
 
-                  {note || checklistItems.length > 0 ? (
-                    <div className="history-item__details">
-                      {note ? (
-                        <section>
-                          <h3>Notas</h3>
-                          <p>{note.body}</p>
-                        </section>
-                      ) : null}
-
-                      {checklistItems.length > 0 ? (
-                        <section>
-                          <h3>Checklist</h3>
-                          <ul>
-                            {checklistItems.map((item) => (
-                              <li
-                                className={
-                                  item.is_checked
-                                    ? 'is-checked'
-                                    : undefined
-                                }
-                                key={item.id}
-                              >
-                                <span aria-hidden="true">
-                                  {item.is_checked ? '✓' : '○'}
-                                </span>
-                                {item.label}
-                              </li>
-                            ))}
-                          </ul>
-                        </section>
-                      ) : null}
-                    </div>
+                  {task ? (
+                    <TaskDetails
+                      task={task}
+                      notes={taskDetailsById.get(task.id)?.notes ?? []}
+                      checklistItems={
+                        taskDetailsById.get(task.id)?.checklistItems ?? []
+                      }
+                      readOnly
+                      hideWhenEmpty
+                    />
                   ) : null}
                 </div>
 
@@ -195,6 +179,30 @@ function HistoryView({
           })}
         </div>
       )}
+
+      {totalHistoryItems > pageSize ? (
+        <nav className="history-pagination" aria-label="Paginación del historial">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 0 || loadingPage}
+          >
+            ← Anterior
+          </button>
+          <span>
+            Página {currentPage + 1} de {totalPages}
+          </span>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1 || loadingPage}
+          >
+            Siguiente →
+          </button>
+        </nav>
+      ) : null}
     </section>
   )
 }

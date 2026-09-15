@@ -299,6 +299,14 @@ small {
   text-decoration: line-through;
 }
 
+.task-details__check-item.is-checked {
+  color: var(--muted);
+}
+
+.task-details__check-item.is-checked span:last-child {
+  text-decoration: line-through;
+}
+
 .task-details__delete {
   padding: 7px 10px;
   font-size: 0.8rem;
@@ -684,54 +692,15 @@ textarea {
   font-size: 0.85rem;
 }
 
-.history-item__details {
+.history-pagination {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(79, 111, 82, 0.12);
-}
-
-.history-item__details section {
-  min-width: 0;
-}
-
-.history-item__details h3 {
-  margin: 0 0 5px;
-  color: var(--text-strong);
-  font-size: 0.88rem;
-}
-
-.history-item__details p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.history-item__details ul {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.history-item__details li {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  color: var(--text-strong);
-}
-
-.history-item__details li span {
-  color: var(--accent-strong);
-  font-weight: 700;
-}
-
-.history-item__details li.is-checked {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
   color: var(--muted);
-  text-decoration: line-through;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .history-item__badge {
